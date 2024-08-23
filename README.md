@@ -101,7 +101,7 @@ The run scripts that are bash files (ending in *.sh*) should be run using the `s
 ### 2.1 1st script: run_stardist_live_to_segmentation.py <a name="script1_main"></a>
 
 #### Pre-requisites: <a name="script1_req"></a>
-You should have installed the conda environment *stardist-env*, activated it by running the `conda activate stardist-env` command. You should have uploaded to your *home* directory the *stardist_models* folder and to your *scratch* directory the *volumes* folder that you got from Fiji. In the same folder in which *volumes* is stored, you should create a */tif_seg* and a */npy_seg* folders. *stardist_nuc_seg_live.py* is the associated python script. You should also create a *stardist_live* folder in your *outputs* folder located in your *home* directory.
+You should have installed the conda environment *stardist-env*, activated it by running the `conda activate stardist-env` command. You should have uploaded to your *home* directory the *stardist_models* folder and to your *scratch* directory the *volumes* folder that you got from Fiji. In the same folder in which *volumes* is stored, you should create a */tif_seg* and a */npy_seg* folders. [stardist_nuc_seg_live.py](./Scripts_HPC_Cluster/stardist_nuc_seg_live.py) is the associated python script. You should also create a *stardist_live* folder in your *outputs* folder located in your *home* directory.
 
 #### Parameters of the script: <a name="script1_par"></a>
 There is only one argument for the script, which is the path to the *volumes* folder. If your pixel size is something else than 0.75, 0.173, 0.173 in respectively Z, Y and X, you have to go in the *stardist_nuc_seg_live.py* file and locate the following line:  
