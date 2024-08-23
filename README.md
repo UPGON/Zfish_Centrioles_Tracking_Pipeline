@@ -5,21 +5,29 @@ In this Document, I explain the pipeline that I’ve found was not working too b
 ## Table of Contents
 1. [Introduction](#intro)
    
-   1.1 [Pre-requisites](#intro_req)
+   1.1 [First steps in Fiji](#intro_fiji)
    
-   1.2 [First steps in Fiji](#intro_fiji)
+   1.2 [How to install conda](#intro_conda)
    
-   1.3 [How to install conda](#intro_conda)
+   1.3 [How to use the HPC-cluster](#intro_hpc)
+
+2. [Tracking pipeline: step by step](#track_pip_main)
    
-   1.4 [How to use the HPC-cluster](#intro_hpc)
+   2.1 [1st script: run_stardist_live_to_segmentation.py](#script1_main)
+   
+      2.1.1 [Pre-requisites](#script1_req)
+   
+      2.1.2 [Parameters of the script](#script1_par)
+   
+      2.1.3 [How to run the script](#script1_how)
+   
+      2.1.4 [Outputs](#script1_out)
 
    
 
-## Introduction <a name="intro"></a>
+## 1. Introduction <a name="intro"></a>
 
-### Pre-requisites <a name="intro_req"></a>
-
-#### First steps in Fiji <a name="intro_fiji"></a>
+### 1.1 First steps in Fiji <a name="intro_fiji"></a>
 
 After having obtained the images from the SPIM, you should time-register them using BigDataProcessor2 plug-in in Fiji. There, they have a pretty easy to use functionality that let you click on the same nucleus along the whole movie, and then save these coordinates in a .json file that you can then use to apply track drift correction on the images. Once done, you should crop the ROI you are interested in in the image and save the cropped images.
 Warning: This step can be very long ! Finding the right crop for your ROI, as well as saving the cropped image to the server can take together up to some days. To speed up things, it is recommended to only save the images in 3D (folder called volumes) and not do max projections yet. Once the 3D cropped image has been saved, you can open them in Fiji and do max projection there and save it. To open the images for a single channel, just drag and drop the volumes folder in which the images are saved, and then in the Filter section just enter C00 if you want only the first channel or C01 if you want the second channel. When the files are opened, you might have to re-arrange the hyperstack dimensions to get the images in the right order. Keep the max projections open for each channels, and then merge the channels and save everything in one single file.
@@ -27,11 +35,12 @@ Warning: This step can be very long ! Finding the right crop for your ROI, as we
 Once you have both 3D images and max projections for your cropped image, you can detect the spots using TrackMate plug-in in Fiji on the max-projected images. You can then save the spots detected to a csv file. For my images, the spots were detected using the following settings: LoG detection, 0.75 radius and approx. 21.18 for the quality threshold. 
 
 
-#### How to install conda <a name="intro_conda"></a>
+### 1.2 How to install conda <a name="intro_conda"></a>
 
 Before the next steps, which are all done in python, make sure to have properly installed everything needed. This is, conda on your account on the hpc-cluster (e.g. Jed), and conda on your computer. To install conda on your account on the hpc-cluster follow the instructions given here for Linux:
-https://docs.anaconda.com/miniconda/miniconda-install/. For this to work, you will need to upload the miniconda.sh file to your /home directory (e.g. using CyberDuck, see the how to use the HPC-cluster section further in this document). For your local computer, just check the appropriate section depending on the OS of your computer. When this is done, you should install the following two environments: stardist-env and btrack-env.
+https://docs.anaconda.com/miniconda/miniconda-install/. For this to work, you will need to upload the miniconda.sh file to your /home directory (e.g. using CyberDuck, see the how to use the HPC-cluster section further in this document). For your local computer, just check the appropriate section depending on the OS of your computer. When this is done, you should install the following two environments: *stardist-env* and *btrack-env*.
 To install stardist-env, here are the instructions:
+```bash
 conda create -y -n stardist-env python=3.9
 conda activate stardist-env
 conda install -c conda-forge pyqt
@@ -41,9 +50,9 @@ pip install cenfind
 pip install napari-animation
 pip install stardist-napari
 pip install spyder-kernels==2.5.*
-
+```
 To install btrack-env, here are the instructions:
-
+```bash
 conda create -y -n btrack-env python=3.9
 conda activate btrack-env
 conda install -c conda-forge pyqt
@@ -53,40 +62,43 @@ pip install napari
 pip install napari-animation
 pip install spyder-kernels==2.5.*
 pip install napari-tracks-reader
-
-The parts written in pink do not need to be executed for the installation on the hpc-cluster, but are needed for the installation on your computer. If you are not using spyder to execute and modify your python script, you can skip the pip install spyder-kernels==2.5.* line. 
-To activate the desire environment, just type conda activate env-name in the terminal.
+```
+The parts written in pink do not need to be executed for the installation on the hpc-cluster, but are needed for the installation on your computer. If you are not using spyder to execute and modify your python script, you can skip the `pip install spyder-kernels==2.5.*` line. 
+To activate the desire environment, just type `conda activate env-name` in the terminal.
 For the scripts which need to be run on an hpc-cluster, I recommend using the jed cluster of EPFL, and CyberDuck on MacOS (download it from the internet to get the free version) or WinSCP on windows to manage your files stored on the cluster. To run the scripts on your local computer, I recommend using a python IDLE such as Spyder, PyCharm or Visual Studio Code. If you do not wish to install an IDLE on your computer, you can also open a terminal window, activate your conda environment and then run the python command to open the python interpreter and copy and paste there the chunks of code you want to run. However, if you are not at ease with coding in python, I would not recommend this solution. 
 
 
-#### How to use the HPC-cluster <div id='intro_hpc'/>
+### 1.3 How to use the HPC-cluster <a name="intro_hpc"></a>
 
 Before diving into the step-by-step description of the tracking pipeline, I am explaining here how the HPC-cluster works, how to use it and how to run scripts there. 
-To connect to the Jed HPC of EPFL, open a terminal window and type the following command: ssh gaspar@jed.epfl.ch where you replace gaspar by your actual gaspar name from EPFL. It will then ask to enter your password, just type your gaspar password. Note that it is normal if you don’t see any character printing when doing so, when done with typing your password just press the enter key of your keyboard. If this gives you a permission denied error, check that you are part of an EPFL group that has access to the cluster. To work on Jed you have access to three personal directories: /home/gaspar, /scratch/gaspar, /work/gaspar. The home directory is where you will have your important files such as the conda installation, your python scripts and the models for stardist and btrack. The memory limit on home is low, so do not store your data there. For your data and images, I would recommend using the scratch directory, this has unlimited memory, it is the directory that is accessed the faster by your scripts (which reduces scripts’ execution time by a lot) but all the files older than 30 days might be automatically deleted without notice, so make sure to keep a copy of all the files that are in scratch somewhere else. The work directory is a pay-per-use directory to store your data, without any memory or time-limit. As in principle you should only need to use the cluster for the first steps, which are quite quick, I recommend using /scratch over /work. For any trouble, not addressed here, that you might encounter when using the cluster, you can check the documentation here: https://scitas-doc.epfl.ch. 
-At the beginning of each session on the cluster, you need to source conda by running the following command source /home/gaspar/miniconda/etc/profile.d/conda.sh where gaspar should be replaced by your gaspar name. If this doesn’t work, you can use    find . -name "conda.sh" to locate where /miniconda/etc/profile.d/conda.sh is installed.
-When this is done, you can then use the conda activate command to activate the environment that you need to run your scripts (e.g. conda activate stardist-env). To run a python script on the cluster, you need to run first a script that will define the resources needed for the execution and then will call your core python script to be executed. These files are all names run_name_of_python_script, where name_of_python_script is the name of the corresponding python script that you wish to run. The run script and the corresponding python script should all be stored in the /home directory. Important: if you are not part of the upgon group/account for the jed cluster, then you have to modify the run scripts as follow: open them in a text editor and locate the line:
-#SBATCH --account=upgon and change upgon by the name of your group/account.
-The run scripts that are bash files (ending in .sh) should be run using the sbatch command. The run scripts that are python files (ending in .py) should be run using the python command. Before running a script for the first time, open the corresponding run script and locate this line: #SBATCH -o /home/gaspar/outputs/some_thing/out_%a.txt where gaspar is your gaspar name and some_thing is the name of a folder specific for each file. Make sure that the folder some_thing corresponding to the script you want to run has been created in the outputs folder. This will contains errors files in which you can see the errors and warning that were returned by python during execution, which is useful to correct mistakes that might be present in your scripts; and out files which will contain anything what would have been printed in the console of your python interpreter if you were running the script on your computer. Before beginning, also make sure to have uploaded the btrack_models and stardist_models folders into your home directory on the cluster. Important: before running any script, you should open both the run script and the associated python script, and search for all the occurrence of curvaia in the script (except the following headline: @author: floriancurvaia) and replace it with your own gaspar.
+To connect to the Jed HPC of EPFL, open a terminal window and type the following command:  
+`ssh gaspar@jed.epfl.ch` where you replace gaspar by your actual gaspar name from EPFL. It will then ask to enter your password, just type your gaspar password. Note that it is normal if you don’t see any character printing when doing so, when done with typing your password just press the enter key of your keyboard. If this gives you a permission denied error, check that you are part of an EPFL group that has access to the cluster.  
+To work on Jed you have access to three personal directories: */home/gaspar*, */scratch/gaspar*, */work/gaspar*. The home directory is where you will have your important files such as the conda installation, your python scripts and the models for stardist and btrack. The memory limit on home is low, so do not store your data there. For your data and images, I would recommend using the scratch directory, this has unlimited memory, it is the directory that is accessed the faster by your scripts (which reduces scripts’ execution time by a lot) but all the files older than 30 days might be automatically deleted without notice, so make sure to keep a copy of all the files that are in scratch somewhere else. The work directory is a pay-per-use directory to store your data, without any memory or time-limit. As in principle you should only need to use the cluster for the first steps, which are quite quick, I recommend using */scratch* over */work*. For any trouble, not addressed here, that you might encounter when using the cluster, you can check the documentation here: https://scitas-doc.epfl.ch.  
+At the beginning of each session on the cluster, you need to source conda by running the following command `source /home/gaspar/miniconda/etc/profile.d/conda.sh` where gaspar should be replaced by your gaspar name. If this doesn’t work, you can use `find . -name "conda.sh"` to locate where */miniconda/etc/profile.d/conda.sh* is installed.  
+When this is done, you can then use the `conda activate` command to activate the environment that you need to run your scripts (e.g. `conda activate stardist-env`). To run a python script on the cluster, you need to run first a script that will define the resources needed for the execution and then will call your core python script to be executed. These files are all names *run_name_of_python_script*, where *name_of_python_script* is the name of the corresponding python script that you wish to run. The run script and the corresponding python script should all be stored in the */home* directory. Important: if you are not part of the upgon group/account for the jed cluster, then you have to modify the run scripts as follow: open them in a text editor and locate the line:  
+`#SBATCH --account=upgon` and change upgon by the name of your group/account. 
+The run scripts that are bash files (ending in *.sh*) should be run using the `sbatch` command. The run scripts that are python files (ending in *.py*) should be run using the python command. Before running a script for the first time, open the corresponding run script and locate this line:  
+`#SBATCH -o /home/gaspar/outputs/some_thing/out_%a.txt` where gaspar is your gaspar name and *some_thing* is the name of a folder specific for each file. Make sure that the folder *some_thing* corresponding to the script you want to run has been created in the *outputs* folder. This will contains errors files in which you can see the errors and warning that were returned by python during execution, which is useful to correct mistakes that might be present in your scripts; and out files which will contain anything what would have been printed in the console of your python interpreter if you were running the script on your computer. Before beginning, also make sure to have uploaded the *btrack_models* and *stardist_models* folders into your home directory on the cluster. Important: before running any script, you should open both the run script and the associated python script, and search for all the occurrence of **curvaia** in the script (except the following headline: @author: floriancurvaia) and replace it with your own gaspar.
 
-Tracking pipeline: step by step
+## 2. Tracking pipeline: step by step <a name="track_pip_main"></a>
 
-1st script: run_stardist_live_to_segmentation.py
+### 1st script: run_stardist_live_to_segmentation.py <a name="script1_main"></a>
 
-Pre-requisites:
+#### Pre-requisites: <a name="script1_req"></a>
 You should have installed the conda environment stardist-env, activated it by running the conda activate stardist-env command. You should have uploaded to your home directory the stardist_models folder and to your scratch directory the volumes folder that you got from FiJi. In the same folder in which volumes is stored, you should create a /tif_seg and a /npy_seg folders. stardist_nuc_seg_live.py is the associated python script. You should also create a stardist_live folder in your outputs folder located in your home directory.
 
-Parameters of the script: 
+#### Parameters of the script: <a name="script1_par"></a>
 There is only one argument for the script, which is the path to the volumes folder. If your pixel size is something else than 0.75, 0.173, 0.173 in respectively Z, Y and X, you have to go in the stardist_nuc_seg_live.py file and locate the following line
 y, _ = model.predict_instances(x, scale=(1,0.23,0.23), n_tiles=n_tiles)
 and replace the scale argument (given in Z, Y, X order) such that your pixel sizes in Z, Y and X divided by the corresponding number you give to the scale argument is equal to 0.75.
 
-How to run the script:
+#### How to run the script: <a name="script1_how"></a>
 Use the following command: 
 python run_stardist_live_to_segmentation.py /path_to_volumes_folder
 where /path_to_volumes_folder is the path to the folder volumes that you uploaded. For example for me it was: 
 /scratch/curvaia/Transplants_e1_2/Muscles_part2/volumes 
 
-Output: 
+#### Output: <a name="script1_out"></a>
 The script will output nuclei segmentation across all time points in two formats: in tif file in the /tif_seg folder and in numpy array in the /npy_seg folder. The npy_seg folder should be downloaded to your computer or to your group share, since it will be needed for the scripts that will be run from your computer. However, downloading large data from the hpc-cluster can take substantial amount of time, so you can do so when you will be done with the next script so you don’t keep the files occupied.
 
 2nd script: run_btrack_cluster.sh
