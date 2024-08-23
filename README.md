@@ -23,6 +23,16 @@ In this Document, I explain the pipeline that I’ve found was not working too b
 
    2.5 [5th script: Curate_spots.py](#script5_main)
 
+   2.6 [6th script: Curate_tracks.py](#script6_main)
+
+   2.7 [7th script: Make_Dict_Tracks.py](#script7_main)
+
+   2.8 [8th script: Make_nuc_Dict_track.py](#script8_main)
+
+   2.9 [9th script: Dist_spot_nuc.py](#script9_main)
+
+   2.10 [10th script: Wrap_up_make_all_plots.py](#script10_main)
+
    
    
 
@@ -98,7 +108,7 @@ The run scripts that are bash files (ending in *.sh*) should be run using the `s
 
 ## 2. Tracking pipeline: step by step <a name="track_pip_main"></a>
 
-### 2.1 1st script: [run_stardist_nuc_seg_live.py](./Scripts_HPC_Cluster/run_stardist_nuc_seg_live.py) <a name="script1_main"></a>
+### 2.1 1st script: [run_stardist_live_to_segmentation.py](./Scripts_HPC_Cluster/run_stardist_live_to_segmentation.py) <a name="script1_main"></a>
 
 #### Pre-requisites: <a name="script1_req"></a>
 You should have installed the conda environment *stardist-env*, activated it by running the `conda activate stardist-env` command. You should have uploaded to your *home* directory the *stardist_models* folder and to your *scratch* directory the *volumes* folder that you got from Fiji. In the same folder in which *volumes* is stored, you should create a */tif_seg* and a */npy_seg* folders. [stardist_nuc_seg_live.py](./Scripts_HPC_Cluster/stardist_nuc_seg_live.py) is the associated python script. You should also create a *stardist_live* folder in your *outputs* folder located in your *home* directory.
@@ -116,7 +126,7 @@ where `/path_to_volumes_folder` is the path to the folder volumes that you uploa
 #### Output: <a name="script1_out"></a>
 The script will output nuclei segmentation across all time points in two formats: in tif file in the */tif_seg* folder and in numpy array in the */npy_seg* folder. The *npy_seg* folder should be downloaded to your computer or to your group share, since it will be needed for the scripts that will be run from your computer. However, downloading large data from the hpc-cluster can take substantial amount of time, so you can do so when you will be done with all the scripts that need to run on the cluster so you don’t keep the files occupied.
 
-### 2.2 2nd script: run_btrack_cluster.sh <a name="script2_main"></a>
+### 2.2 2nd script: [run_btrack_cluster.sh](./Scripts_HPC_Cluster/run_btrack_cluster.sh) <a name="script2_main"></a>
 
 #### Pre-requisites: <a name="script2_req"></a>
 You should have installed the conda environment *btrack-env*, activated it by running the `conda activate btrack-env` command. You should have uploaded to your *home* directory the *btrack_models* folder.
@@ -131,7 +141,7 @@ sbatch run_btrack_cluster.sh
 #### Output: <a name="script2_out"></a>
 The script will output a file named btrack_cells_Muscle_v2.h5 that contains the btrack tracking of the nuclei and nuc_coords_Muscles_V2.npy and another file named nuc_coords_Muscles_V2.npy which contains the TrackID, TimePoint, Z, Y and X coordinates of all the nuclei. They should be downloaded to your computer or to your group share, since they will be needed for the scripts that will be run from your computer.
 
-### 2.3 3rd script: run_time_track_nuc_coords_parallel.py <a name="script3_main"></a>
+### 2.3 3rd script: [run_time_track_nuc_coords_parallel.py](./Scripts_HPC_Cluster/run_time_track_nuc_coords_parallel.py) <a name="script3_main"></a>
 
 #### Pre-requisites: <a name="script3_req"></a>
 You should have installed the conda environment btrack-env, activated it by running the conda activate btrack-env command. You must create a folder Nuc_seg_time_track next to the volumes and npy_seg folders. 
@@ -149,7 +159,7 @@ where /path_to_npy_seg_folder is the path to the folder npy_seg. For example for
 The script will output nuclei segmentation across all time points in numpy format in the /Nuc_seg_time_track. This contains the nuclei segmentation where nuclei labels have been replaced by their TrackID in each time point. The Nuc_seg_time_track folder should be downloaded to your computer or to your group share, since it will be needed for the scripts that will be run from your computer. Keep in mind that downloading large data from the hpc-cluster can take substantial amount of time.
 
 
-### 2.4 4th script: run_live_2d_spots_to_3d_cluster.py <a name="script4_main"></a>
+### 2.4 4th script: [run_live_2d_spots_to_3d_cluster.py](./Scripts_HPC_Cluster/run_live_2d_spots_to_3d_cluster.py) <a name="script4_main"></a>
 
 #### Pre-requisites: <a name="script4_req"></a>
 You should have installed the conda environment btrack-env, activated it by running the conda activate btrack-env command. You should have created a folder named Centrioles_spots_3D next to the volumes and npy_seg folders. You should have uploaded the csv file containing the 2d location of the spots.
@@ -169,7 +179,7 @@ where /path_to_volumes_folder is the path to the folder volumes that you uploade
 The script will output in the Centrioles_spots_3D folder one csv file for each time point with the coordinates of the spots in 3D. This folder should be downloaded to your computer or to your group share, since it will be needed for the scripts that will be run from your computer. 
 
 
-### 2.5 5th script: Curate_spots.py <a name="script5_main"></a>
+### 2.5 5th script: [Curate_spots.py](./Scripts_Computer/Curate_spots.py)  <a name="script5_main"></a>
 
 #### Pre-requisites: <a name="script5_req"></a>
 This is the first script to be run on your own computer. It is also the case for all the following scripts, except if clearly mentioned otherwise. You should have installed the conda environment btrack-env on your computer. If you use an IDLE to open and run the script, go in the settings of your IDLE and select the python interpreter located in your btrack-env. If you run each chunk of the script using the python interpreter in the terminal, make sure to run the conda activate btrack-env command before running the python command in the terminal.
@@ -193,15 +203,15 @@ The goal of this script is to only select the spots that belongs to the cell you
 This script will output a csv file named cur_spots_t349_idCell_ID.csv where Cell_ID is the unique identifier that you chose for your cell. It contains all the spots associated to your cell of interest. 
 
 
-6th script: Curate_tracks.py
+### 2.6 6th script: [Curate_tracks.py](./Scripts_Computer/Curate_tracks.py)  <a name="script6_main"></a>
 
-Pre-requisites:
+#### Pre-requisites: <a name="script6_req"></a>
 This must be run on your computer. In addition of the same pre-requisites than the 5th script, you must have run the latter before running this one.
 
-Parameters of the script:
+#### Parameters of the script: <a name="script6_par"></a>
 All parameters/arguments present in this script are already described in the parameters section of the 5th script. Please refer to it. 
 
-How to run the script:
+#### How to run the script: <a name="script6_how"></a>
 The goal of this script is to perform the tracking of the spots that were selected and curated in the previous script. Before running the script, please replace the dict_ids_to_track_540, by your dict_ids_to_track_737 object that you defined in the previous script (just copy the definition of the object in script 5 and paste it in script 6 instead of dict_ids_to_track_540). You can run the whole script at once this time, unlike the previous script. This will open a napari windows. The tracking of the spots is the layer named data_spots. For this layer as well don’t forget to tick the Show ID option. Now it is time to curate the tracks. Depending on how meticulous and dedicated you are, it can take up to several days or a full week. In the case of muscle cells, where you can have many very dynamic spots (up to 9 at the same time have been observed in my case), so sometimes it can be very tricky to determine the track of a spot between two time points. To curate the tracks, open your favourite text editor and open a new text file named Spots_time_ID_idCell_ID_toDict.txt where you replace Cell_ID by the ID you chose previously for your cell of interest. The curation of the tracks is done backwards in time, so you have to start to the last time point. Here is the explanation on how to fill this text file. For that I will use the text file shown in figure XY. To start, identify all the spots present at the last time point and their ID. For each one, add one line with the following structure: ID Spot_ID where you replace Spot_ID with the TrackID that you see on the last time point in Napari (see red arrows). Then, each time a spot changes ID in Napari, write a new line below with the following structure: 
 tp: Spot_New_ID where tp is the timepoint at which the change occurs and Spot_New_ID the new ID of the spot backwards in time starting from this time point (note that there must be a space after the colon : but not before). For example, if the ID of the spot initially labelled as 8 changes to 7 at the time point 342, then you would have: 
 342: 7 (see blue arrow). Repeat this each time a spot changes ID. If when going backwards in time, there is spots that suddenly appear (meaning that they disappear when we go forward in time), then add a new line ID Spot_ID with the ID of the newly appeared spot as the Spot_ID. If the ID is already being used, you can use any other number that is free. Then below, add the following line: 
@@ -220,52 +230,50 @@ Finally, if a spot simply disappears (e.g. its signal fades), then just write Di
 ![Image to be found: Images_for_README/Tracks_Curation_example.png](./Images_for_README/Tracks_Curation_example.png)
 
 
-Outputs: 
+#### Outputs: <a name="script6_out"></a>
 This script doesn’t properly have any output, but after running it and before going to the next one, you should have filled the text file Spots_time_ID_idCell_ID_toDict.txt where you curate the tracks of the different spots of your cell of interest. Before moving on to the next script, make sure that the spots are sorted in numerical order in the Spots_time_ID_idCell_ID_toDict.txt file (e.g. the spot which main ID (the ID on the first row of a spot) is 9, is after one spot which main ID is 4). 
 
 
-7th script: Make_Dict_Tracks.py
-Pre-requisites:
+### 2.7 7th script: [Make_Dict_Tracks.py](./Scripts_Computer/Make_Dict_Tracks.py)  <a name="script7_main"></a>
+#### Pre-requisites: <a name="script7_req"></a>
 This must be run on your computer. In addition of the same pre-requisites than the 6th script, you must have run the latter before running this one and have your file Spots_time_ID_idCell_ID_toDict.txt ready.
 
-Parameters of the script:
+#### Parameters of the script: <a name="script7_par"></a>
 path_files is the path in which the csv file of the spot, as well as the text file with the tracks annotations are located. In the previous script, it was usually called path_out_im. Cell_ID is the ID of the cell you are interested to. N_tracks is the total number of individual spots that you have in your cell (e.g. if you have in total 5 unique tracks in the cell along the whole time range, put 5). last_tp_tracks is a list in which you have to write the main ID of each unique spot (which is the ID appearing on the first row of the spot), in numerical order. For scale, see previous scripts.
 
-How to run the script: 
+#### How to run the script: <a name="script7_how"></a>
 This script can be run all at once without further precautions. 
 
-Outputs:
+#### Outputs: <a name="script7_out"></a>
 This scripts outputs two csv files: 
 all_cur_spots_idCell_ID.csv and all_cur_spots_idCell_ID_w_Merge.csv in which the tracks of the spots are corrected according to the annotation. The w_Merge file contains tracks for which when a spot was said to disappear in another spot, they receive the same track ID for this period of time.
 
 
-8th script: Make_nuc_Dict_track.py
-
+### 2.8 8th script: [Make_nuc_Dict_track.py](./Scripts_Computer/Make_nuc_Dict_track.py)  <a name="script8_main"></a>
 This script just does exactly the same thing as the previous script, Make_Dict_Tracks.py, so just refers to the explanation of it. It just also outputs a numpy array with the centre of the cell in each time point computed as the centre point between all the nuclei of the cell.
 
 
-9th script: Dist_spot_nuc.py
-
-Pre-requisites:
+### 2.9 9th script: [Dist_spot_nuc.py](./Scripts_Computer/Dist_spot_nuc.py)  <a name="script9_main"></a>
+#### Pre-requisites: <a name="script9_req"></a>
 Having run the previous script.
 
-Parameters of the script: 
+#### Parameters of the script: <a name="script9_par"></a>
 The only new parameter is new_scale. This is similar to scale, but instead of being    (Z, Y, X) it is (T, Z, Y, X) with T=1. 
 
-How to run the script: 
+#### How to run the script: <a name="script9_how"></a>
 Just run everything at once
 
-Outputs:
+#### Outputs: <a name="script9_out"></a>
 The script computes at each time point the distance of each spot to the closest nucleus belonging to the cell of interest. It also gets the intensity values of all the pixels belonging to a spot (see the last chunks of code). It outputs the csv file named all_cur_spots_idCell_ID_w_dist.csv of the spots with two new columns, which are the ID of the closest nucleus and the distance to it, as well as a dictionary containing the intensity values of each spot at each time point called:
 dict_spots_fluo_values_r2_5_xy0_75_z1_66_per_tp_idCell_ID.pkl.
 
-10th script: Wrap_up_make_all_plots_Clean.py
 
-Pre-requisites: 
+### 2.10 10th script: [Wrap_up_make_all_plots_Clean.py](./Scripts_Computer/Wrap_up_make_all_plots_Clean.py)  <a name="script10_main"></a>
+#### Pre-requisites: <a name="script10_req"></a>
 Having run the previous script. You must also create a next to volumes a folder named Spots_seg_trackID_idCell_ID_final. You must create/choose a folder where you want the folders containing the plots of each cell that you analyse to be. Inside this folder, create a folder named mean_fluo_vs_time_idCell_ID, as well as a folder named Z_corr. In the Z_corr folder make another folder named mean_fluo_vs_time_idCell_ID.
 
 
-Parameters of the script: 
+#### Parameters of the script: <a name="script10_par"></a>
 Muscle_cells: set to True if the cell you analyse is a Muscle one and has Corner spots.
 Open_napari: set to True if you wish to open Napari at the end of the execution of the script.
 Record_Movie: Always let this to False. If you wish to record a movie, just run the last chunk of code after having open Napari.
@@ -278,10 +286,10 @@ path_out_movies: path to the folder where you want to save your movies.
 path_out_im: path to the folder containing the mean_fluo_vs_time_idCell_ID and the Z_corr folders.
 path_config: path to the folder containing the btrack-models.
 
-How to run the script: 
+#### How to run the script: <a name="script10_how"></a>
 You can run it in one single chunk. Before running the script, you should copy your dict_ids_to_track_737 from Curate_spots.py and paste it to replace the dict_ids_to_track_737 that is already present in the script. 
 
-Outputs:
+#### Outputs: <a name="script10_out"></a>
 This script is the core script of the pipeline. It is here that the magic happens after having curated the spots detection and the spots tracking. It will output multiple plots to show different things (e.g. intensity of each spot over time, distance to closest nucleus over time, frequence of the change in direction of each spot, etc.). 
 
 
