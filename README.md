@@ -1,6 +1,8 @@
-# Zfish_Centrioles_Tracking_Pipeline
-Python scripts for analysis of Zebrafish images
-In this Document, I explain the pipeline that I’ve found was not working too bad to detect and track centrioles on live images acquired with the Viventis SPIM. 
+# Centrioles tracking pipeline in single cells
+
+These python scripts were originally written to allow the tracking of centrioles/centrin foci in muscles cells of Zebrafish. They can also be used with any other 3D + t images to track centrioles. 
+If you have 2D images, this will not work, since many places in the code are written considering there is three dimensions. However, if you know Python a bit, you can easily spot such places and adapt it to work on 2D + t images.
+Alternatively, you can also look to the short script written for Gabriella and Zhansaya project.  
 
 ## Table of Contents
 1. [Introduction](#intro)
@@ -13,30 +15,33 @@ In this Document, I explain the pipeline that I’ve found was not working too b
 
 2. [Tracking pipeline: step by step](#track_pip_main)
    
-   2.1 [1st script: run_stardist_live_to_segmentation.py](#script1_main)
+   2.1 [First script: run_stardist_live_to_segmentation.py](#script1_main)
 
-   2.2 [2nd script: run_btrack_cluster.sh](#script2_main)
+   2.2 [Second script: run_btrack_cluster.sh](#script2_main)
 
-   2.3 [3rd script: run_time_track_nuc_coords_parallel.py](#script3_main)
+   2.3 [Third script: run_time_track_nuc_coords_parallel.py](#script3_main)
 
-   2.4 [4th script: run_live_2d_spots_to_3d_cluster.py](#script4_main)
+   2.4 [Fourth script: run_live_2d_spots_to_3d_cluster.py](#script4_main)
 
-   2.5 [5th script: Curate_spots.py](#script5_main)
+   2.5 [Fifth script: Curate_spots.py](#script5_main)
 
-   2.6 [6th script: Curate_tracks.py](#script6_main)
+   2.6 [Sixth script: Curate_tracks.py](#script6_main)
 
-   2.7 [7th script: Make_Dict_Tracks.py](#script7_main)
+   2.7 [Seventh script: Make_Dict_Tracks.py](#script7_main)
 
-   2.8 [8th script: Make_nuc_Dict_track.py](#script8_main)
+   2.8 [Eighth script: Make_nuc_Dict_track.py](#script8_main)
 
-   2.9 [9th script: Dist_spot_nuc.py](#script9_main)
+   2.9 [Ninth script: Dist_spot_nuc.py](#script9_main)
 
-   2.10 [10th script: Wrap_up_make_all_plots.py](#script10_main)
+   2.10 [Tenth script: Wrap_up_make_all_plots.py](#script10_main)
 
    
    
 
 ## 1. Introduction <a name="intro"></a>
+
+In the documentation, I explain in details the detection + tracking pipeline. It is not working too bad to detect and track centrioles on live images acquired with the Viventis SPIM, but further improvement could defenitely be made.
+If you wish to do so, the best place to start is to improve the tracking of the centrioles by playing with the parameters of the different [btrack](https://btrack.readthedocs.io/en/latest/index.html) models to find the parameters that best suit your purpose. Afterhand, if you have the time to do so, you can also train a [StarDist](https://github.com/stardist/stardist) model based on your own manual annotations of nuclei segmentation.
 
 ### 1.1 First steps in Fiji <a name="intro_fiji"></a>
 
@@ -103,14 +108,14 @@ At the beginning of each session on the cluster, you need to source conda by run
 When this is done, you can then use the `conda activate` command to activate the environment that you need to run your scripts (e.g. `conda activate stardist-env`). To run a python script on the cluster, you need to run first a script that will define the resources needed for the execution and then will call your core python script to be executed. These files are all names *run_name_of_python_script*, where *name_of_python_script* is the name of the corresponding python script that you wish to run. The run script and the corresponding python script should all be stored in the */home* directory. Important: if you are not part of the upgon group/account for the jed cluster, then you have to modify the run scripts as follow: open them in a text editor and locate the line:  
 `#SBATCH --account=upgon` and change upgon by the name of your group/account. 
 The run scripts that are bash files (ending in *.sh*) should be run using the `sbatch` command. The run scripts that are python files (ending in *.py*) should be run using the python command. Before running a script for the first time, open the corresponding run script and locate this line:  
-`#SBATCH -o /home/gaspar/outputs/some_thing/out_%a.txt` where gaspar is your gaspar name and *some_thing* is the name of a folder specific for each file. Make sure that the folder *some_thing* corresponding to the script you want to run has been created in the *outputs* folder. This will contains errors files in which you can see the errors and warning that were returned by python during execution, which is useful to correct mistakes that might be present in your scripts; and out files which will contain anything what would have been printed in the console of your python interpreter if you were running the script on your computer. Before beginning, also make sure to have uploaded the *btrack_models* and *stardist_models* folders into your home directory on the cluster. Important: before running any script, you should open both the run script and the associated python script, and search for all the occurrence of **curvaia** in the script (except the following headline: @author: floriancurvaia) and replace it with your own gaspar.
+`#SBATCH -o /home/gaspar/outputs/some_thing/out_%a.txt` where gaspar is your gaspar name and *some_thing* is the name of a folder specific for each file. Make sure that the folder *some_thing* corresponding to the script you want to run has been created in the *outputs* folder. This will contains errors files in which you can see the errors and warning that were returned by python during execution, which is useful to correct mistakes that might be present in your scripts; and out files which will contain anything what would have been printed in the console of your python interpreter if you were running the script on your computer. Before beginning, also make sure to have uploaded the [stardist_models](./stardist_models) and [btrack_models](./btrack_models) folders into your home directory on the cluster. Important: before running any script, you should open both the run script and the associated python script, and search for all the occurrence of **curvaia** in the script (except the following headline: @author: floriancurvaia) and replace it with your own gaspar.
 
 ## 2. Tracking pipeline: step by step <a name="track_pip_main"></a>
 
-### 2.1 1st script: [run_stardist_live_to_segmentation.py](./Scripts_HPC_Cluster/run_stardist_live_to_segmentation.py) <a name="script1_main"></a>
+### 2.1 First script: [run_stardist_live_to_segmentation.py](./Scripts_HPC_Cluster/run_stardist_live_to_segmentation.py) <a name="script1_main"></a>
 
 #### Pre-requisites: <a name="script1_req"></a>
-You should have installed the conda environment *stardist-env*, activated it by running the `conda activate stardist-env` command. You should have uploaded to your *home* directory the *stardist_models* folder and to your *scratch* directory the *volumes* folder that you got from Fiji. In the same folder in which *volumes* is stored, you should create a */tif_seg* and a */npy_seg* folders. [stardist_nuc_seg_live.py](./Scripts_HPC_Cluster/stardist_nuc_seg_live.py) is the associated python script. You should also create a *stardist_live* folder in your *outputs* folder located in your *home* directory.
+You should have installed the conda environment *stardist-env*, activated it by running the `conda activate stardist-env` command. You should have uploaded to your *home* directory the [stardist_models](./stardist_models) folder and to your *scratch* directory the *volumes* folder that you got from Fiji. In the same folder in which *volumes* is stored, you should create a */tif_seg* and a */npy_seg* folders. [stardist_nuc_seg_live.py](./Scripts_HPC_Cluster/stardist_nuc_seg_live.py) is the associated python script. You should also create a *stardist_live* folder in your *outputs* folder located in your *home* directory.
 
 #### Parameters of the script: <a name="script1_par"></a>
 There is only one argument for the script, which is the path to the *volumes* folder. If your pixel size is something else than 0.75, 0.173, 0.173 in respectively Z, Y and X, you have to go in the [stardist_nuc_seg_live.py](./Scripts_HPC_Cluster/stardist_nuc_seg_live.py) file and locate the following line:  
@@ -119,46 +124,46 @@ There is only one argument for the script, which is the path to the *volumes* fo
 #### How to run the script: <a name="script1_how"></a>
 Use the following command:  
 `python run_stardist_live_to_segmentation.py /path_to_volumes_folder`  
-where `/path_to_volumes_folder` is the path to the folder *volumes* that you uploaded. For example for me it was: 
+where `/path_to_volumes_folder` is the path to the folder *volumes* that you uploaded. For example for me it was:  
 `/scratch/curvaia/Transplants_e1_2/Muscles_part2/volumes` 
 
 #### Output: <a name="script1_out"></a>
 The script will output nuclei segmentation across all time points in two formats: in tif file in the */tif_seg* folder and in numpy array in the */npy_seg* folder. The *npy_seg* folder should be downloaded to your computer or to your group share, since it will be needed for the scripts that will be run from your computer. However, downloading large data from the hpc-cluster can take substantial amount of time, so you can do so when you will be done with all the scripts that need to run on the cluster so you don’t keep the files occupied.
 
-### 2.2 2nd script: [run_btrack_cluster.sh](./Scripts_HPC_Cluster/run_btrack_cluster.sh) <a name="script2_main"></a>
+### 2.2 Second script: [run_btrack_cluster.sh](./Scripts_HPC_Cluster/run_btrack_cluster.sh) <a name="script2_main"></a>
 
 #### Pre-requisites: <a name="script2_req"></a>
-You should have installed the conda environment *btrack-env*, activated it by running the `conda activate btrack-env` command. You should have uploaded to your *home* directory the *btrack_models* folder.
+You should have installed the conda environment *btrack-env*, activated it by running the `conda activate btrack-env` command. You should have uploaded to your *home* directory the [btrack_models](./btrack_models) folder.
 
 #### Parameters of the script: <a name="script2_par"></a>
-There is no proper argument to this script. All the path to the necessary folders (volumes and npy_seg) should be adapted directly in the script. If your pixel size is something else than 0.75, 0.173, 0.173 in Z, Y and X, you should locate the scale=(0.75, 0.173, 0.173) line and change the values by your pixel size in Z, Y and X.
+There is no proper argument to this script. All the path to the necessary folders (*volumes* and *npy_seg*) should be adapted directly in the script. If your pixel size is something else than 0.75, 0.173, 0.173 in Z, Y and X, you should locate the `scale=(0.75, 0.173, 0.173)` line and change the values by your pixel size in Z, Y and X.
 
 #### How to run the script: <a name="script2_how"></a>
-Use the following command: 
-sbatch run_btrack_cluster.sh
+Use the following command:  
+`sbatch run_btrack_cluster.sh`
 
 #### Output: <a name="script2_out"></a>
-The script will output a file named btrack_cells_Muscle_v2.h5 that contains the btrack tracking of the nuclei and nuc_coords_Muscles_V2.npy and another file named nuc_coords_Muscles_V2.npy which contains the TrackID, TimePoint, Z, Y and X coordinates of all the nuclei. They should be downloaded to your computer or to your group share, since they will be needed for the scripts that will be run from your computer.
+The script will output a file named *btrack_cells_Muscle_v2.h5* that contains the btrack tracking of the nuclei and another file named *nuc_coords_Muscles_V2.npy* which contains the TrackID, TimePoint, Z, Y and X coordinates of all the nuclei. They should be downloaded to your computer or to your group share, since they will be needed for the scripts that will be run from your computer.
 
-### 2.3 3rd script: [run_time_track_nuc_coords_parallel.py](./Scripts_HPC_Cluster/run_time_track_nuc_coords_parallel.py) <a name="script3_main"></a>
+### 2.3 Third script: [run_time_track_nuc_coords_parallel.py](./Scripts_HPC_Cluster/run_time_track_nuc_coords_parallel.py) <a name="script3_main"></a>
 
 #### Pre-requisites: <a name="script3_req"></a>
-You should have installed the conda environment btrack-env, activated it by running the conda activate btrack-env command. You must create a folder Nuc_seg_time_track next to the volumes and npy_seg folders. 
+You should have installed the conda environment *btrack-env*, activated it by running the `conda activate btrack-env` command. You must create a folder *Nuc_seg_time_track* next to the *volumes* and *npy_seg folders*. 
 
 #### Parameters of the script: <a name="script3_par"></a>
-There is only one argument for the script, which is the path to the npy_seg folder. If your pixel size is something else than 0.75, 0.173, 0.173 in respectively Z, Y and X, you have to go in the time_track_nuc_coords_parallel.py file and locate the following line scale=(0.75, 0.173, 0.173) and change the values by your pixel size in Z, Y and X.
+There is only one argument for the script, which is the path to the *npy_seg* folder. If your pixel size is something else than 0.75, 0.173, 0.173 in respectively Z, Y and X, you have to go in the [time_track_nuc_coords_parallel.py](./Scripts_HPC_Cluster/time_track_nuc_coords_parallel.py) file and locate the following line `scale=(0.75, 0.173, 0.173)` and change the values by your pixel size in Z, Y and X.
 
 #### How to run the script: <a name="script3_how"></a>
-Use the following command: 
-python run_time_track_nuc_coords_parallel.py /path_to_npy_seg_folder
-where /path_to_npy_seg_folder is the path to the folder npy_seg. For example for me it was: 
-/scratch/curvaia/Transplants_e1_2/Muscles_part2/npy_seg
+Use the following command:  
+`python run_time_track_nuc_coords_parallel.py /path_to_npy_seg_folder`
+where `/path_to_npy_seg_folder` is the path to the folder *npy_seg*. For example for me it was:  
+`/scratch/curvaia/Transplants_e1_2/Muscles_part2/npy_seg`
 
 #### Output: <a name="script3_out"></a>
-The script will output nuclei segmentation across all time points in numpy format in the /Nuc_seg_time_track. This contains the nuclei segmentation where nuclei labels have been replaced by their TrackID in each time point. The Nuc_seg_time_track folder should be downloaded to your computer or to your group share, since it will be needed for the scripts that will be run from your computer. Keep in mind that downloading large data from the hpc-cluster can take substantial amount of time.
+The script will output nuclei segmentation across all time points in numpy format in the */Nuc_seg_time_track*. This contains the nuclei segmentation where nuclei labels have been replaced by their TrackID in each time point. The *Nuc_seg_time_track* folder should be downloaded to your computer or to your group share, since it will be needed for the scripts that will be run from your computer. Keep in mind that downloading large data from the hpc-cluster can take substantial amount of time.
 
 
-### 2.4 4th script: [run_live_2d_spots_to_3d_cluster.py](./Scripts_HPC_Cluster/run_live_2d_spots_to_3d_cluster.py) <a name="script4_main"></a>
+### 2.4 Fourth script: [run_live_2d_spots_to_3d_cluster.py](./Scripts_HPC_Cluster/run_live_2d_spots_to_3d_cluster.py) <a name="script4_main"></a>
 
 #### Pre-requisites: <a name="script4_req"></a>
 You should have installed the conda environment btrack-env, activated it by running the conda activate btrack-env command. You should have created a folder named Centrioles_spots_3D next to the volumes and npy_seg folders. You should have uploaded the csv file containing the 2d location of the spots.
@@ -178,7 +183,7 @@ where /path_to_volumes_folder is the path to the folder volumes that you uploade
 The script will output in the Centrioles_spots_3D folder one csv file for each time point with the coordinates of the spots in 3D. This folder should be downloaded to your computer or to your group share, since it will be needed for the scripts that will be run from your computer. 
 
 
-### 2.5 5th script: [Curate_spots.py](./Scripts_Computer/Curate_spots.py)  <a name="script5_main"></a>
+### 2.5 Fifth script: [Curate_spots.py](./Scripts_Computer/Curate_spots.py)  <a name="script5_main"></a>
 
 #### Pre-requisites: <a name="script5_req"></a>
 This is the first script to be run on your own computer. It is also the case for all the following scripts, except if clearly mentioned otherwise. You should have installed the conda environment btrack-env on your computer. If you use an IDLE to open and run the script, go in the settings of your IDLE and select the python interpreter located in your btrack-env. If you run each chunk of the script using the python interpreter in the terminal, make sure to run the conda activate btrack-env command before running the python command in the terminal.
@@ -203,7 +208,7 @@ The goal of this script is to only select the spots that belongs to the cell you
 This script will output a csv file named cur_spots_t349_idCell_ID.csv where Cell_ID is the unique identifier that you chose for your cell. It contains all the spots associated to your cell of interest. 
 
 
-### 2.6 6th script: [Curate_tracks.py](./Scripts_Computer/Curate_tracks.py)  <a name="script6_main"></a>
+### 2.6 Sixth script: [Curate_tracks.py](./Scripts_Computer/Curate_tracks.py)  <a name="script6_main"></a>
 
 #### Pre-requisites: <a name="script6_req"></a>
 This must be run on your computer. In addition of the same pre-requisites than the 5th script, you must have run the latter before running this one.
@@ -236,7 +241,7 @@ Finally, if a spot simply disappears (e.g. its signal fades), then just write Di
 This script doesn’t properly have any output, but after running it and before going to the next one, you should have filled the text file Spots_time_ID_idCell_ID_toDict.txt where you curate the tracks of the different spots of your cell of interest. Before moving on to the next script, make sure that the spots are sorted in numerical order in the Spots_time_ID_idCell_ID_toDict.txt file (e.g. the spot which main ID (the ID on the first row of a spot) is 9, is after one spot which main ID is 4). 
 
 
-### 2.7 7th script: [Make_Dict_Tracks.py](./Scripts_Computer/Make_Dict_Tracks.py)  <a name="script7_main"></a>
+### 2.7 Seventh script: [Make_Dict_Tracks.py](./Scripts_Computer/Make_Dict_Tracks.py)  <a name="script7_main"></a>
 #### Pre-requisites: <a name="script7_req"></a>
 This must be run on your computer. In addition of the same pre-requisites than the 6th script, you must have run the latter before running this one and have your file Spots_time_ID_idCell_ID_toDict.txt ready.
 
@@ -251,11 +256,11 @@ This scripts outputs two csv files:
 all_cur_spots_idCell_ID.csv and all_cur_spots_idCell_ID_w_Merge.csv in which the tracks of the spots are corrected according to the annotation. The w_Merge file contains tracks for which when a spot was said to disappear in another spot, they receive the same track ID for this period of time.
 
 
-### 2.8 8th script: [Make_nuc_Dict_track.py](./Scripts_Computer/Make_nuc_Dict_track.py)  <a name="script8_main"></a>
+### 2.8 Eighth script: [Make_nuc_Dict_track.py](./Scripts_Computer/Make_nuc_Dict_track.py)  <a name="script8_main"></a>
 This script just does exactly the same thing as the previous script, Make_Dict_Tracks.py, so just refers to the explanation of it. It just also outputs a numpy array with the centre of the cell in each time point computed as the centre point between all the nuclei of the cell.
 
 
-### 2.9 9th script: [Dist_spot_nuc.py](./Scripts_Computer/Dist_spot_nuc.py)  <a name="script9_main"></a>
+### 2.9 Ninth script: [Dist_spot_nuc.py](./Scripts_Computer/Dist_spot_nuc.py)  <a name="script9_main"></a>
 #### Pre-requisites: <a name="script9_req"></a>
 Having run the previous script.
 
@@ -270,7 +275,7 @@ The script computes at each time point the distance of each spot to the closest 
 dict_spots_fluo_values_r2_5_xy0_75_z1_66_per_tp_idCell_ID.pkl.
 
 
-### 2.10 10th script: [Wrap_up_make_all_plots_Clean.py](./Scripts_Computer/Wrap_up_make_all_plots_Clean.py)  <a name="script10_main"></a>
+### 2.10 Tenth script: [Wrap_up_make_all_plots_Clean.py](./Scripts_Computer/Wrap_up_make_all_plots_Clean.py)  <a name="script10_main"></a>
 #### Pre-requisites: <a name="script10_req"></a>
 Having run the previous script. You must also create a next to volumes a folder named Spots_seg_trackID_idCell_ID_final. You must create/choose a folder where you want the folders containing the plots of each cell that you analyse to be. Inside this folder, create a folder named mean_fluo_vs_time_idCell_ID, as well as a folder named Z_corr. In the Z_corr folder make another folder named mean_fluo_vs_time_idCell_ID.
 
