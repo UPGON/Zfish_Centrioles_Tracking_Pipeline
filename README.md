@@ -219,6 +219,7 @@ If your pixel size is something else than 0.75, 0.173, 0.173 in respectively Z, 
 
 #### How to run the script: <a name="script5_how"></a>
 The goal of this script is to only select the spots that belongs to the cell you want to analyse.  
+If you analyse a muscle cell that has corner spots, I would advise you to treat separately the "normal" spots and the corner spots. That is, to run once this script and all the following ones to the end for the normal spots and after that re-do the same for the corner spots.  
 The script is composed of 3 different parts that should be run one after the other, since some additional steps on your side are required in-between.  
 Each part begins with a line of comment:  
 `###PART 1 of the script`,  
@@ -364,7 +365,7 @@ Having run [the previous script](#script9_main). You must also create a next to 
 
 
 #### Parameters of the script: <a name="script10_par"></a>
-`Muscle_cells`: set to True if the cell you analyse is a Muscle one and has Corner spots.  
+`Muscle_cells`: set to True if the cell you analyse is a Muscle one and has Corner spots that have already been curated.  
 `Open_napari`: set to True if you wish to open Napari at the end of the execution of the script.  
 `Record_Movie`: Always let this to False. If you wish to record a movie, just run the last chunk of code after having open Napari.  
 `Fluo_V2`: Just let that alwas to True.  
