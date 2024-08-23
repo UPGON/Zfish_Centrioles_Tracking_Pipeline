@@ -28,7 +28,7 @@ args = CLI.parse_args()
 tp=int(args.idx)
 path_in=Path(args.fld)
 
-fn=path_in / ("ome-tiff.companion-track-crop-crop--C00--T"+str(tp).zfill(5)+".tif")
+fn=path_in / ("ome-tiff.companion-track-crop--C00--T"+str(tp).zfill(5)+".tif")
 
 path_in=fn.parent
 path_in_spots = Path("/scratch/curvaia/Transplants_e1_2/Muscles_part2/e2-1_muscles2_max_proj_allspots_d1_4_Q5_8.csv")
