@@ -2,12 +2,32 @@
 Python scripts for analysis of Zebrafish images
 In this Document, I explain the pipeline that I’ve found was not working too bad to detect and track centrioles on live images acquired with the Viventis SPIM. 
 
-Pre-requisites
+## Table of Contents
+1. [Introduction](#intro)
+   
+   1.1 [Pre-requisites](#intro_req)
+   
+   1.2 [First steps in Fiji](#intro_fiji)
+   
+   1.3 [How to install conda](#intro_conda)
+   
+   1.4 [How to use the HPC-cluster](#intro_hpc)
+
+   
+
+## Introduction <a name="intro"></a>
+
+### Pre-requisites <a name="intro_req"></a>
+
+#### First steps in Fiji <a name="intro_fiji"></a>
 
 After having obtained the images from the SPIM, you should time-register them using BigDataProcessor2 plug-in in Fiji. There, they have a pretty easy to use functionality that let you click on the same nucleus along the whole movie, and then save these coordinates in a .json file that you can then use to apply track drift correction on the images. Once done, you should crop the ROI you are interested in in the image and save the cropped images.
 Warning: This step can be very long ! Finding the right crop for your ROI, as well as saving the cropped image to the server can take together up to some days. To speed up things, it is recommended to only save the images in 3D (folder called volumes) and not do max projections yet. Once the 3D cropped image has been saved, you can open them in Fiji and do max projection there and save it. To open the images for a single channel, just drag and drop the volumes folder in which the images are saved, and then in the Filter section just enter C00 if you want only the first channel or C01 if you want the second channel. When the files are opened, you might have to re-arrange the hyperstack dimensions to get the images in the right order. Keep the max projections open for each channels, and then merge the channels and save everything in one single file.
 
 Once you have both 3D images and max projections for your cropped image, you can detect the spots using TrackMate plug-in in Fiji on the max-projected images. You can then save the spots detected to a csv file. For my images, the spots were detected using the following settings: LoG detection, 0.75 radius and approx. 21.18 for the quality threshold. 
+
+
+#### How to install conda <a name="intro_conda"></a>
 
 Before the next steps, which are all done in python, make sure to have properly installed everything needed. This is, conda on your account on the hpc-cluster (e.g. Jed), and conda on your computer. To install conda on your account on the hpc-cluster follow the instructions given here for Linux:
 https://docs.anaconda.com/miniconda/miniconda-install/. For this to work, you will need to upload the miniconda.sh file to your /home directory (e.g. using CyberDuck, see the how to use the HPC-cluster section further in this document). For your local computer, just check the appropriate section depending on the OS of your computer. When this is done, you should install the following two environments: stardist-env and btrack-env.
@@ -38,7 +58,8 @@ The parts written in pink do not need to be executed for the installation on the
 To activate the desire environment, just type conda activate env-name in the terminal.
 For the scripts which need to be run on an hpc-cluster, I recommend using the jed cluster of EPFL, and CyberDuck on MacOS (download it from the internet to get the free version) or WinSCP on windows to manage your files stored on the cluster. To run the scripts on your local computer, I recommend using a python IDLE such as Spyder, PyCharm or Visual Studio Code. If you do not wish to install an IDLE on your computer, you can also open a terminal window, activate your conda environment and then run the python command to open the python interpreter and copy and paste there the chunks of code you want to run. However, if you are not at ease with coding in python, I would not recommend this solution. 
 
-How to use the HPC-cluster and run scripts there
+
+#### How to use the HPC-cluster <div id='intro_hpc'/>
 
 Before diving into the step-by-step description of the tracking pipeline, I am explaining here how the HPC-cluster works, how to use it and how to run scripts there. 
 To connect to the Jed HPC of EPFL, open a terminal window and type the following command: ssh gaspar@jed.epfl.ch where you replace gaspar by your actual gaspar name from EPFL. It will then ask to enter your password, just type your gaspar password. Note that it is normal if you don’t see any character printing when doing so, when done with typing your password just press the enter key of your keyboard. If this gives you a permission denied error, check that you are part of an EPFL group that has access to the cluster. To work on Jed you have access to three personal directories: /home/gaspar, /scratch/gaspar, /work/gaspar. The home directory is where you will have your important files such as the conda installation, your python scripts and the models for stardist and btrack. The memory limit on home is low, so do not store your data there. For your data and images, I would recommend using the scratch directory, this has unlimited memory, it is the directory that is accessed the faster by your scripts (which reduces scripts’ execution time by a lot) but all the files older than 30 days might be automatically deleted without notice, so make sure to keep a copy of all the files that are in scratch somewhere else. The work directory is a pay-per-use directory to store your data, without any memory or time-limit. As in principle you should only need to use the cluster for the first steps, which are quite quick, I recommend using /scratch over /work. For any trouble, not addressed here, that you might encounter when using the cluster, you can check the documentation here: https://scitas-doc.epfl.ch. 
@@ -127,6 +148,7 @@ Pre-requisites:
 This is the first script to be run on your own computer. It is also the case for all the following scripts, except if clearly mentioned otherwise. You should have installed the conda environment btrack-env on your computer. If you use an IDLE to open and run the script, go in the settings of your IDLE and select the python interpreter located in your btrack-env. If you run each chunk of the script using the python interpreter in the terminal, make sure to run the conda activate btrack-env command before running the python command in the terminal.
 You should have the volumes folder, as well as the Centrioles_spots_3D and Nuc_seg_time_track folders and btrack_cells_Muscle_v2.h5 file downloaded from the hpc-cluster, either stored in your computer or in the share of your group.
 
+
 Parameters of the script: 
 For all the scripts that are being run on your computer, all the arguments/parameters are located inside the script, and therefore should be changed directly there.
 path_in_spots is the path to the Centrioles_spots_3D folder. path_in_C1 and path_in_C2 are both the path to the volumes folder. path_in_C3 is the path to the Nuc_seg_time_track folder. Inside the with btrack.io.HDF5FileHandler parentheses, you should replace the path by the path to the btrack_cells_Muscle_v2.h5 file. The path_out_im is the path where plots will be saved if you decide to plot some data from this script and is also the directory where all the main files related to your cell of interest (csv file of spots, tracks, etc.) will be stored. The path_config should be the path to the btrack-models folder. If your pixel size is something else than 0.75, 0.173, 0.173 in respectively Z, Y and X, locate the following line scale=(0.75, 0.173, 0.173) and change the values by your pixel size in Z, Y and X.
@@ -134,6 +156,8 @@ path_in_spots is the path to the Centrioles_spots_3D folder. path_in_C1 and path
 
 How to run the script:
 The goal of this script is to only select the spots that belongs to the cell you want to analyse. The script is composed of 3 different parts that should be run one after the other, since some additional steps on your side are required in-between. Each part begins with a line of comment: ###PART 1 of the script, ###PART 2 of the script and ###PART 3 of the script. To run each part just select the code that is part of it and click on the button of your IDLE that lets you execute only your selection, or just copy and paste the part in the python window if you are using the terminal. To run parts 2 and 3 you need to have run before in the same session the preceding part, respectively 1 and 2. After running the first part, it will open a napari window with both channels, the nuclei segmentation and the tracking of the nuclei (layer called data). In the tracking layer, don’t forget to tick the show ID option to show the tracks ID. On napari, you can switch between 2D and 3D view by clicking on the square icon on the bottom left panel (second icon from the left on the icons panel). Once you found a cell that you want to analyse, you should look at all the tracking IDs that it takes through time and fill a python dictionary with them (see figure xx). In the example given in Fig. XX, you can see that for all time points above 265 (meaning 266 and onwards), the TrackID was 583, for all time points above 38 up to 265 it was 119, between 30 and 38 it was 59, between 2 and 29 it was 14 and below 2 it was 5. If at one time point, your nucleus of reference does not appear in the tracks (e.g. it was not recognized as a nucleus by StarDist, just put a large number as the ID for this time point, e.g. 10000. This number should be large enough that it does not correspond to any tracks that were created by the tracking algorithm). Make sure to write this dictionary after the other dictionaries called dict_ids_to_track_737, otherwise yours will be overwritten.
+
+![Image to be found: Images_for_README/Track_ID_exemple.png](./Images_for_README/Track_ID_exemple.png)
 
  
  Once this is done, you can run part 2. This will extract from the spot files the spots that are the closer to the nucleus you are interested in. The goal is to only keep the spots close to the nucleus/cell you picked and discard the others. This will open a new point layer on napari with the selected spots. Now you have to review the spots frame by frame, to remove the spots that might not belong to your cell and add the spots belonging to your cell but that are not shown here (either they were too far, thus not selected, or they were not detected by TrackMate). You can save your progression in the curation at any time, by running the part 3 of the script. Before doing so, make sure to change the Cell_ID, to match the number that you chose to be the unique identifier of your cell (Usually, I use the TrackID that is present in the most time point). This Cell_ID will be used to identify the cell and the files and folders associated to it for the rest of the pipeline. Avoid choosing two times the same ID ! To start back where you ended in case you saved and quit, just uncomment the three lines at the beginning of the script and follow the instructions given there. In any case, when you are done with the curation, you need to run part 3 to save your curation to a new csv file, if you do not do it, everything will be lost !
@@ -166,7 +190,7 @@ tp: New_ID_Spot Reappear where tp is the time point at which the spot reappears 
 For example if the spot previously disappeared reappears at time point 134 with the ID 4, you should mark:
 134: 4 Reappear (see second black arrow) 
 Finally, if a spot simply disappears (e.g. its signal fades), then just write Disappear instead of Disappear in Remaining_Spot_ID (see second green arrow). If the spot was not present at the beginning of the imaging, meaning that when doing the curation backwards, the spot disappears and never reappears, just let a blank line after the line where you act the disappearance of the spot (third green arrow). Now repeat the exact same process with the nuclei of the cell you are interested in. If your cell has a single nucleus, this should be easy, you can use the dict_ids_to_track_737 to know what to write, without having to go through all the images again. Write everything in a text file named Nuc_time_ID_idCell_ID_toDict.txt.
-![image](https://github.com/user-attachments/assets/73c2f38f-ace7-431b-933f-671a1aea6622)
+![Image to be found: Images_for_README/Tracks_Curation_example.png](./Images_for_README/Tracks_Curation_example.png)
 
 
 Outputs: 
