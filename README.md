@@ -4,6 +4,9 @@ These python scripts were originally written to allow the tracking of centrioles
 If you have 2D images, this will not work, since many places in the code are written considering there is three dimensions. However, if you know Python a bit, you can easily spot such places and adapt it to work on 2D + t images.
 Alternatively, you can also look to the short script written for Gabriella and Zhansaya project.  
 
+\
+In case you should have any questions not addressed here about my code, you can contact me at florian.curvaia@me.com
+
 ## Table of Contents
 1. [Introduction](#intro)
    
@@ -41,14 +44,16 @@ Alternatively, you can also look to the short script written for Gabriella and Z
 ## 1. Introduction <a name="intro"></a>
 
 In the documentation, I explain in details the detection + tracking pipeline. It is not working too bad to detect and track centrioles on live images acquired with the Viventis SPIM, but further improvement could defenitely be made.
-If you wish to do so, the best place to start is to improve the tracking of the centrioles by playing with the parameters of the different [btrack](https://btrack.readthedocs.io/en/latest/index.html) models to find the parameters that best suit your purpose. Afterhand, if you have the time to do so, you can also train a [StarDist](https://github.com/stardist/stardist) model based on your own manual annotations of nuclei segmentation.
+If you wish to do so, the best place to start is to improve the tracking of the centrioles by playing with the parameters of the different [btrack](https://btrack.readthedocs.io/en/latest/index.html) models to find the parameters that best suit your purpose. Afterhand, if you have the time to do so, you can also train a [StarDist](https://github.com/stardist/stardist) model based on your own manual annotations of nuclei segmentation.  
+\
 
 ### 1.1 First steps in Fiji <a name="intro_fiji"></a>
 
 After having obtained the images from the SPIM, you should time-register them using BigDataProcessor2 plug-in in Fiji. There, they have a pretty easy to use functionality that let you click on the same nucleus along the whole movie, and then save these coordinates in a .json file that you can then use to apply track drift correction on the images. Once done, you should crop the ROI you are interested in in the image and save the cropped images.
 Warning: This step can be very long ! Finding the right crop for your ROI, as well as saving the cropped image to the server can take together up to some days. To speed up things, it is recommended to only save the images in 3D (folder called *volumes*) and not do max projections yet. Once the 3D cropped image has been saved, you can open them in Fiji and do max projection there and save it. To open the images for a single channel, just drag and drop the volumes folder in which the images are saved, and then in the Filter section just enter *C00* if you want only the first channel or *C01* if you want the second channel. When the files are opened, you might have to re-arrange the hyperstack dimensions to get the images in the right order. Keep the max projections open for each channels, and then merge the channels and save everything in one single file.
 
-Once you have both 3D images and max projections for your cropped image, you can detect the spots using TrackMate plug-in in Fiji on the max-projected images. You can then save the spots detected to a csv file. For my images, the spots were detected using the following settings: LoG detection, 0.75 radius and approx. 21.18 for the quality threshold. 
+Once you have both 3D images and max projections for your cropped image, you can detect the spots using TrackMate plug-in in Fiji on the max-projected images. You can then save the spots detected to a csv file. For my images, the spots were detected using the following settings: LoG detection, 0.75 radius and approx. 21.18 for the quality threshold.  
+\
 
 
 ### 1.2 How to install conda <a name="intro_conda"></a>
@@ -95,7 +100,7 @@ pip install napari-tracks-reader
 Be careful, when using conda, once you used the `pip install` command to install a python package, you **MUST NOT** use the `conda install` command anymore after that. Therefore, all the packages that require to be installed with `conda install` (such as ffmpeg, pyqt, etc.) should be installed before using `pip install` as it is shown here. If you find yourself needing to install new packages after that, please install them with `pip install` if possible. If it is possible only with conda, remove the previous environment and re-install the whole by making sure to install the packages requiring conda before the rest. If you are not using spyder to execute and modify your python script, you can skip the `pip install spyder-kernels==2.5.*` line. 
 To activate the desired environment, just type `conda activate env-name` in the terminal.
 For the scripts which need to be run on an hpc-cluster, I recommend using the jed cluster of EPFL, and [CyberDuck](https://cyberduck.io/download/) on MacOS (download it from this [link](https://cyberduck.io/download/) to get the free version) or [WinSCP](https://winscp.net/eng/index.php) on windows to manage your files stored on the cluster. To run the scripts on your local computer, I recommend using a python IDLE such as [Spyder](https://www.spyder-ide.org), [PyCharm](https://www.jetbrains.com/pycharm/) or [Visual Studio Code](https://code.visualstudio.com). If you do not wish to install an IDLE on your computer, you can also open a terminal window, activate your conda environment and then run the `python` command to open the python interpreter and copy and paste there the chunks of code you want to run. However, if you are not at ease with coding in python, I would not recommend this solution. 
-
+\
 
 ### 1.3 How to use the HPC-cluster <a name="intro_hpc"></a>
 
@@ -110,7 +115,8 @@ When this is done, you can then use the `conda activate` command to activate the
 `#SBATCH --account=upgon` and change *upgon* by the name of your group/account. 
 The run scripts that are bash files (ending in *.sh*) should be run using the `sbatch` command. The run scripts that are python files (ending in *.py*) should be run using the `python` command. Before running a script for the first time on the cluster, open the corresponding run script and locate this line:  
 `#SBATCH -o /home/gaspar/outputs/some_thing/out_%a.txt` where *gaspar* is your gaspar name and *some_thing* is the name of a folder specific for each file.  
-Make sure that the folder *some_thing* corresponding to the script you want to run has been created in the *outputs* folder. This will contains errors files in which you can see the errors and warning that were returned by python during execution, which is useful to correct mistakes that might be present in your scripts; and out files which will contain anything what would have been printed in the console of your python interpreter if you were running the script on your computer. Before beginning, also make sure to have uploaded the [stardist_models](./stardist_models) and [btrack_models](./btrack_models) folders into your home directory on the cluster. Important: before running any script, you should open both the run script and the associated python script, and search for all the occurrence of **curvaia** (just do Cmd/Ctrl + F) in the script (except the headline `@author: floriancurvaia`) and replace it with your own gaspar.
+Make sure that the folder *some_thing* corresponding to the script you want to run has been created in the *outputs* folder. This will contains errors files in which you can see the errors and warning that were returned by python during execution, which is useful to correct mistakes that might be present in your scripts; and out files which will contain anything what would have been printed in the console of your python interpreter if you were running the script on your computer. Before beginning, also make sure to have uploaded the [stardist_models](./stardist_models) and [btrack_models](./btrack_models) folders into your home directory on the cluster. Important: before running any script, you should open both the run script and the associated python script, and search for all the occurrence of **curvaia** (just do Cmd/Ctrl + F) in the script (except the headline `@author: floriancurvaia`) and replace it with your own gaspar.  
+\
 
 ## 2. Tracking pipeline: step by step <a name="track_pip_main"></a>
 
@@ -130,7 +136,8 @@ where `/path_to_volumes_folder` is the path to the folder *volumes* that you upl
 `/scratch/curvaia/Transplants_e1_2/Muscles_part2/volumes` 
 
 #### Output: <a name="script1_out"></a>
-The script will output nuclei segmentation across all time points in two formats: in tif file in the */tif_seg* folder and in numpy array in the */npy_seg* folder. The *npy_seg* folder should be downloaded to your computer or to your group share, since it will be needed for the scripts that will be run from your computer. However, downloading large data from the hpc-cluster can take substantial amount of time, so you can do so when you will be done with all the scripts that need to run on the cluster so you don’t keep the files occupied.
+The script will output nuclei segmentation across all time points in two formats: in tif file in the */tif_seg* folder and in numpy array in the */npy_seg* folder. The *npy_seg* folder should be downloaded to your computer or to your group share, since it will be needed for the scripts that will be run from your computer. However, downloading large data from the hpc-cluster can take substantial amount of time, so you can do so when you will be done with all the scripts that need to run on the cluster so you don’t keep the files occupied.  
+\
 
 ### 2.2 Second script: [run_btrack_cluster.sh](./Scripts_HPC_Cluster/run_btrack_cluster.sh) <a name="script2_main"></a>
 
@@ -162,7 +169,8 @@ where `/path_to_npy_seg_folder` is the path to the folder *npy_seg*. For example
 `/scratch/curvaia/Transplants_e1_2/Muscles_part2/npy_seg`
 
 #### Output: <a name="script3_out"></a>
-The script will output nuclei segmentation across all time points in numpy format in the */Nuc_seg_time_track*. This contains the nuclei segmentation where nuclei labels have been replaced by their TrackID in each time point. The *Nuc_seg_time_track* folder should be downloaded to your computer or to your group share, since it will be needed for the scripts that will be run from your computer. Keep in mind that downloading large data from the hpc-cluster can take substantial amount of time.
+The script will output nuclei segmentation across all time points in numpy format in the */Nuc_seg_time_track*. This contains the nuclei segmentation where nuclei labels have been replaced by their TrackID in each time point. The *Nuc_seg_time_track* folder should be downloaded to your computer or to your group share, since it will be needed for the scripts that will be run from your computer. Keep in mind that downloading large data from the hpc-cluster can take substantial amount of time.  
+\
 
 
 ### 2.4 Fourth script: [run_live_2d_spots_to_3d_cluster.py](./Scripts_HPC_Cluster/run_live_2d_spots_to_3d_cluster.py) <a name="script4_main"></a>
@@ -183,7 +191,8 @@ where `/path_to_volumes_folder` is the path to the folder *volumes* that you upl
 `/scratch/curvaia/Transplants_e1_2/Muscles_part2/volumes`
 
 #### Output: <a name="script4_out"></a>
-The script will output in the *Centrioles_spots_3D* folder one csv file for each time point with the coordinates of the spots in 3D. This folder should be downloaded to your computer or to your group share, since it will be needed for the scripts that will be run from your computer. 
+The script will output in the *Centrioles_spots_3D* folder one csv file for each time point with the coordinates of the spots in 3D. This folder should be downloaded to your computer or to your group share, since it will be needed for the scripts that will be run from your computer.  
+\
 
 
 ### 2.5 Fifth script: [Curate_spots.py](./Scripts_Computer/Curate_spots.py)  <a name="script5_main"></a>
@@ -234,8 +243,8 @@ You can save your progression in the curation at any time, by running the part 3
 To start back where you ended in case you saved and quitted, just uncomment the three lines at the beginning of the script and follow the instructions given there. In any case, when you are done with the curation, *you need to run part 3 to save your curation* to a new csv file, if you do not do it, everything will be lost !
 
 #### Outputs: <a name="script5_out"></a>
-This script will output a csv file named *cur_spots_t349_idCell_ID.csv* where *Cell_ID* is the unique identifier that you chose for your cell. It contains all the spots associated to your cell of interest. 
-
+This script will output a csv file named *cur_spots_t349_idCell_ID.csv* where *Cell_ID* is the unique identifier that you chose for your cell. It contains all the spots associated to your cell of interest.  
+\
 
 ### 2.6 Sixth script: [Curate_tracks.py](./Scripts_Computer/Curate_tracks.py)  <a name="script6_main"></a>
 
@@ -298,7 +307,7 @@ Now repeat the exact same process with the nuclei of the cell you are interested
 
 #### Outputs: <a name="script6_out"></a>
 This script doesn’t properly have any output, but after running it and before going to the next one, you should have filled the text file *Spots_time_ID_idCell_ID_toDict.txt* where you curate the tracks of the different spots of your cell of interest. **Before moving on to the next script**, make sure that the spots are sorted in numerical order in the *Spots_time_ID_idCell_ID_toDict.txt* file (e.g. the spot which main ID (the ID on the first row of a spot) is 9, is after one spot which main ID is 4).  
-
+\
 
 ### 2.7 Seventh script: [Make_Dict_Tracks.py](./Scripts_Computer/Make_Dict_Tracks.py)  <a name="script7_main"></a>
 #### Pre-requisites: <a name="script7_req"></a>
@@ -318,15 +327,12 @@ This script can be run all at once without further precautions.
 This scripts outputs two csv files:  
 *all_cur_spots_idCell_ID.csv* and *all_cur_spots_idCell_ID_w_Merge.csv* in which the tracks of the spots are corrected according to the annotation.  
 The w_Merge file contains tracks for which when a spot was said to disappear in another spot, they receive the same track ID for this period of time.  
-
+\
 
 ### 2.8 Eighth script: [Make_nuc_Dict_track.py](./Scripts_Computer/Make_nuc_Dict_track.py)  <a name="script8_main"></a>
 This script just does exactly the same thing as [the previous script](#script7_main), so just refers to the explanation of it.  
 In addition, it also outputs a numpy array with the centre of the cell in each time point computed as the centre point between all the nuclei of the cell.  
-
-
-
-
+\
 ### 2.9 Ninth script: [Dist_spot_nuc.py](./Scripts_Computer/Dist_spot_nuc.py)  <a name="script9_main"></a>
 #### Pre-requisites: <a name="script9_req"></a>
 Having run [the previous script](#script8_main).
@@ -340,32 +346,36 @@ Just run everything at once
 #### Outputs: <a name="script9_out"></a>
 The script computes at each time point the distance of each spot to the closest nucleus belonging to the cell of interest. It also gets the intensity values of all the pixels belonging to a spot (see [the last chunk of the script](#https://github.com/UPGON/Zfish_Centrioles_Tracking_Pipeline/blob/a6f08beca6ce2cb0e536b9f7ddf20951aac82e0c/Scripts_Computer/Dist_spot_nuc.py#L195-L231)).  
 It outputs the csv file named *all_cur_spots_idCell_ID_w_dist.csv* of the spots with two new columns, which are the ID of the closest nucleus and the distance to it, as well as a dictionary containing the intensity values of each spot at each time point called:  
-*dict_spots_fluo_values_r2_5_xy0_75_z1_66_per_tp_idCell_ID.pkl*.
+*dict_spots_fluo_values_r2_5_xy0_75_z1_66_per_tp_idCell_ID.pkl*.  
+\
 
 
 ### 2.10 Tenth script: [Wrap_up_make_all_plots_Clean.py](./Scripts_Computer/Wrap_up_make_all_plots_Clean.py)  <a name="script10_main"></a>
 #### Pre-requisites: <a name="script10_req"></a>
-Having run the previous script. You must also create a next to volumes a folder named Spots_seg_trackID_idCell_ID_final. You must create/choose a folder where you want the folders containing the plots of each cell that you analyse to be. Inside this folder, create a folder named mean_fluo_vs_time_idCell_ID, as well as a folder named Z_corr. In the Z_corr folder make another folder named mean_fluo_vs_time_idCell_ID.
+Having run [the previous script](#script9_main). You must also create a next to *volumes* a folder named *Spots_seg_trackID_idCell_ID_final*. You must create/choose a folder where you want the subfolders containing the plots of each cell that you analyse to be. Inside this folder, create a folder named *mean_fluo_vs_time_idCell_ID*, as well as a folder named *Z_corr*. In the *Z_corr* folder make another folder named *mean_fluo_vs_time_idCell_ID*.
 
 
 #### Parameters of the script: <a name="script10_par"></a>
-Muscle_cells: set to True if the cell you analyse is a Muscle one and has Corner spots.
-Open_napari: set to True if you wish to open Napari at the end of the execution of the script.
-Record_Movie: Always let this to False. If you wish to record a movie, just run the last chunk of code after having open Napari.
-Fluo_V2: Just let that alwas to True.
-Z_corr: set to True if you wish to perform correction of intensity along Z and T (Not recommended, except if for your cell/images you see a clear correlation between intensity values and Z or T).
-log_corr: set to True if you wish the Z-correction to be log-based (not recommended).
-N_unique_spots: Number of unique spots (=unique tracks) in your cell.
-path_in_C5: path to the Spots_seg_trackID_idCell_ID_final folder.
-path_out_movies: path to the folder where you want to save your movies.
-path_out_im: path to the folder containing the mean_fluo_vs_time_idCell_ID and the Z_corr folders.
-path_config: path to the folder containing the btrack-models.
+`Muscle_cells`: set to True if the cell you analyse is a Muscle one and has Corner spots.  
+`Open_napari`: set to True if you wish to open Napari at the end of the execution of the script.  
+`Record_Movie`: Always let this to False. If you wish to record a movie, just run the last chunk of code after having open Napari.  
+`Fluo_V2`: Just let that alwas to True.  
+`Z_corr`: set to True if you wish to perform correction of intensity along Z and T (Not recommended, except if for your cell/images you see a clear correlation between intensity values and Z or T).  
+`log_corr`: set to True if you wish the Z-correction to be log-based (not recommended).  
+`N_unique_spots`: Number of unique spots (=unique tracks) in your cell.  
+`path_in_C5`: path to the *Spots_seg_trackID_idCell_ID_final* folder.  
+`path_out_movies`: path to the folder where you want to save your movies.  
+`path_out_im`: path to the folder containing the *mean_fluo_vs_time_idCell_ID* and the *Z_corr* folders.  
+`path_config`: path to the [btrack-models](./btrack_models) folder.  
+
 
 #### How to run the script: <a name="script10_how"></a>
-You can run it in one single chunk. Before running the script, you should copy your dict_ids_to_track_737 from Curate_spots.py and paste it to replace the dict_ids_to_track_737 that is already present in the script. 
+You can run it in one single chunk. Before running the script, you should copy your `dict_ids_to_track_737` from [Curate_spots.py](#im_dict) and paste it to replace the `dict_ids_to_track_737` that is already present in the script.  
 
 #### Outputs: <a name="script10_out"></a>
-This script is the core script of the pipeline. It is here that the magic happens after having curated the spots detection and the spots tracking. It will output multiple plots to show different things (e.g. intensity of each spot over time, distance to closest nucleus over time, frequence of the change in direction of each spot, etc.). 
+This script is the core script of the pipeline. It is here that the magic happens after having curated the spots detection and the spots tracking.  
+It will output multiple plots to show different things (e.g. intensity of each spot over time, distance to closest nucleus over time, frequence of the change in direction of each spot, etc.). 
+
 
 
 
