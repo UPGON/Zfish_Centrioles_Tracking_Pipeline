@@ -93,7 +93,7 @@ pip install spyder-kernels==2.5.*
 pip install napari-tracks-reader
 ```
 Be careful, when using conda, once you used the `pip install` command to install a python package, you **MUST NOT** use the `conda install` command anymore after that. Therefore, all the packages that require to be installed with `conda install` (such as ffmpeg, pyqt, etc.) should be installed before using `pip install` as it is shown here. If you find yourself needing to install new packages after that, please install them with `pip install` if possible. If it is possible only with conda, remove the previous environment and re-install the whole by making sure to install the packages requiring conda before the rest. If you are not using spyder to execute and modify your python script, you can skip the `pip install spyder-kernels==2.5.*` line. 
-To activate the desire environment, just type `conda activate env-name` in the terminal.
+To activate the desired environment, just type `conda activate env-name` in the terminal.
 For the scripts which need to be run on an hpc-cluster, I recommend using the jed cluster of EPFL, and [CyberDuck](https://cyberduck.io/download/) on MacOS (download it from this [link](https://cyberduck.io/download/) to get the free version) or [WinSCP](https://winscp.net/eng/index.php) on windows to manage your files stored on the cluster. To run the scripts on your local computer, I recommend using a python IDLE such as [Spyder](https://www.spyder-ide.org), [PyCharm](https://www.jetbrains.com/pycharm/) or [Visual Studio Code](https://code.visualstudio.com). If you do not wish to install an IDLE on your computer, you can also open a terminal window, activate your conda environment and then run the `python` command to open the python interpreter and copy and paste there the chunks of code you want to run. However, if you are not at ease with coding in python, I would not recommend this solution. 
 
 
@@ -194,47 +194,101 @@ You should have the *volumes* folder, as well as the *Centrioles_spots_3D* and *
 
 
 #### Parameters of the script: <a name="script5_par"></a>
-For all the scripts that are being run on your computer, all the arguments/parameters are located inside the script, and therefore should be changed directly there.
-path_in_spots is the path to the Centrioles_spots_3D folder. path_in_C1 and path_in_C2 are both the path to the volumes folder. path_in_C3 is the path to the Nuc_seg_time_track folder. Inside the with btrack.io.HDF5FileHandler parentheses, you should replace the path by the path to the btrack_cells_Muscle_v2.h5 file. The path_out_im is the path where plots will be saved if you decide to plot some data from this script and is also the directory where all the main files related to your cell of interest (csv file of spots, tracks, etc.) will be stored. The path_config should be the path to the btrack-models folder. If your pixel size is something else than 0.75, 0.173, 0.173 in respectively Z, Y and X, locate the following line scale=(0.75, 0.173, 0.173) and change the values by your pixel size in Z, Y and X.
+For all the scripts that are being run on your computer, all the arguments/parameters are located inside the script, and therefore should be changed directly there.  
+`path_in_spots` is the path to the *Centrioles_spots_3D* folder.  
+`path_in_C1` and `path_in_C2` are both the path to the *volumes* folder.  
+`path_in_C3` is the path to the *Nuc_seg_time_track* folder.  
+Inside the `with btrack.io.HDF5FileHandler` parentheses, you should replace the path by the path to the *btrack_cells_Muscle_v2.h5* file.  
+The `path_out_im` is the path where plots will be saved if you decide to plot some data from this script and is also the directory where all the main files related to your cell of interest (csv file of spots, tracks, etc.) will be stored.  
+The `path_config` should be the path to the [btrack-models](./btrack_models) folder.  
+If your pixel size is something else than 0.75, 0.173, 0.173 in respectively Z, Y and X, locate the following line `scale=(0.75, 0.173, 0.173)` and change the values by your pixel size in Z, Y and X.
 
 
 #### How to run the script: <a name="script5_how"></a>
-The goal of this script is to only select the spots that belongs to the cell you want to analyse. The script is composed of 3 different parts that should be run one after the other, since some additional steps on your side are required in-between. Each part begins with a line of comment: ###PART 1 of the script, ###PART 2 of the script and ###PART 3 of the script. To run each part just select the code that is part of it and click on the button of your IDLE that lets you execute only your selection, or just copy and paste the part in the python window if you are using the terminal. To run parts 2 and 3 you need to have run before in the same session the preceding part, respectively 1 and 2. After running the first part, it will open a napari window with both channels, the nuclei segmentation and the tracking of the nuclei (layer called data). In the tracking layer, don’t forget to tick the show ID option to show the tracks ID. On napari, you can switch between 2D and 3D view by clicking on the square icon on the bottom left panel (second icon from the left on the icons panel). Once you found a cell that you want to analyse, you should look at all the tracking IDs that it takes through time and fill a python dictionary with them (see [this image](#im_dict)). In the example given [below](#im_dict), you can see that for all time points above 265 (meaning 266 and onwards), the TrackID was 583, for all time points above 38 up to 265 it was 119, between 30 and 38 it was 59, between 2 and 29 it was 14 and below 2 it was 5. If at one time point, your nucleus of reference does not appear in the tracks (e.g. it was not recognized as a nucleus by StarDist, just put a large number as the ID for this time point, e.g. 10000. This number should be large enough that it does not correspond to any tracks that were created by the tracking algorithm). Make sure to write this dictionary after the other dictionaries called `dict_ids_to_track_737`, otherwise yours will be overwritten.  
+The goal of this script is to only select the spots that belongs to the cell you want to analyse.  
+The script is composed of 3 different parts that should be run one after the other, since some additional steps on your side are required in-between.  
+Each part begins with a line of comment:  
+`###PART 1 of the script`,  
+`###PART 2 of the script` and  
+`###PART 3 of the script`.  
+To run each part just select the code that is part of it and click on the button of your IDLE that lets you execute only your selection, or just copy and paste the part in the python window if you are using the terminal. To run parts 2 and 3 you need to have run before in the same session the preceding part, respectively 1 and 2.  
+After running the first part, it will open a napari window with both channels, the nuclei segmentation and the tracking of the nuclei (layer called *data*). In the tracking layer, don’t forget to tick the *show ID* option to show the tracks ID. On napari, you can switch between 2D and 3D view by clicking on the square icon on the bottom left panel (second icon from the left on the icons panel).  
+
+Once you found a cell that you want to analyse, you should look at all the tracking IDs that it takes through time and fill a python dictionary with them (see [this image](#im_dict)). In the example given [below](#im_dict), you can see that:  
+for all time points above 265 (meaning 266 and onwards), the TrackID was 583,  
+for all time points above 38 up to 265 it was 119,  
+between 30 and 38 it was 59,  
+between 2 and 29 it was 14 and  
+below 2 it was 5.  
+If at one time point, your nucleus of reference does not appear in the tracks (e.g. it was not recognized as a nucleus by StarDist, just put a large number as the ID for this time point, e.g. 10000. This number should be large enough that it does not correspond to any tracks that were created by the tracking algorithm).  
+Make sure to write this dictionary after the other dictionaries called `dict_ids_to_track_737`, otherwise yours will be overwritten.  
 
 ##### Example of python Dictionnary with the track ID of a nucleus through time <a name="im_dict"></a> 
 ![Image to be found: Images_for_README/Track_ID_exemple.png](./Images_for_README/Track_ID_exemple.png) 
 
  
- Once this is done, you can run part 2. This will extract from the spot files the spots that are the closer to the nucleus you are interested in. The goal is to only keep the spots close to the nucleus/cell you picked and discard the others. This will open a new point layer on napari with the selected spots. Now you have to review the spots frame by frame, to remove the spots that might not belong to your cell and add the spots belonging to your cell but that are not shown here (either they were too far, thus not selected, or they were not detected by TrackMate). You can save your progression in the curation at any time, by running the part 3 of the script. Before doing so, make sure to change the Cell_ID, to match the number that you chose to be the unique identifier of your cell (Usually, I use the TrackID that is present in the most time point). This Cell_ID will be used to identify the cell and the files and folders associated to it for the rest of the pipeline. Avoid choosing two times the same ID ! To start back where you ended in case you saved and quit, just uncomment the three lines at the beginning of the script and follow the instructions given there. In any case, when you are done with the curation, you need to run part 3 to save your curation to a new csv file, if you do not do it, everything will be lost !
+Once this is done, you can run part 2.  
+This will extract from the spot files the spots that are the closer to the nucleus you are interested in. The goal is to only keep the spots close to the nucleus/cell you picked and discard the others. This will open a new point layer on napari with the selected spots. Now you have to review the spots frame by frame, to remove the spots that might not belong to your cell and add the spots belonging to your cell but that are not shown here (either they were too far, thus not selected, or they were not detected by TrackMate).  
+
+You can save your progression in the curation at any time, by running the part 3 of the script. Before doing so, make sure to change the *Cell_ID*, to match the number that you chose to be the unique identifier of your cell (Usually, I use the TrackID that is present in the most time point). This *Cell_ID* will then be used to identify the cell and the files and folders associated to it for the rest of the pipeline. Thus, avoid choosing two times the same ID !  
+To start back where you ended in case you saved and quitted, just uncomment the three lines at the beginning of the script and follow the instructions given there. In any case, when you are done with the curation, *you need to run part 3 to save your curation* to a new csv file, if you do not do it, everything will be lost !
 
 #### Outputs: <a name="script5_out"></a>
-This script will output a csv file named cur_spots_t349_idCell_ID.csv where Cell_ID is the unique identifier that you chose for your cell. It contains all the spots associated to your cell of interest. 
+This script will output a csv file named *cur_spots_t349_idCell_ID.csv* where *Cell_ID* is the unique identifier that you chose for your cell. It contains all the spots associated to your cell of interest. 
 
 
 ### 2.6 Sixth script: [Curate_tracks.py](./Scripts_Computer/Curate_tracks.py)  <a name="script6_main"></a>
 
 #### Pre-requisites: <a name="script6_req"></a>
-This must be run on your computer. In addition of the same pre-requisites than the 5th script, you must have run the latter before running this one.
+This must be run on your computer. In addition of the same pre-requisites than the [5th script](#script5_req), you must have run the latter before running this one.
 
 #### Parameters of the script: <a name="script6_par"></a>
-All parameters/arguments present in this script are already described in the parameters section of the 5th script. Please refer to it. 
+All parameters/arguments present in this script are already described in the [parameters section of the 5th script](#script5_par). Please refer to it. 
 
 #### How to run the script: <a name="script6_how"></a>
-The goal of this script is to perform the tracking of the spots that were selected and curated in the previous script. Before running the script, please replace the `dict_ids_to_track_540`, by your `dict_ids_to_track_737` object that you defined in the previous script (just copy the definition of the object in script 5 and paste it in script 6 instead of dict_ids_to_track_540). You can run the whole script at once this time, unlike the previous script. This will open a napari windows. The tracking of the spots is the layer named data_spots. For this layer as well don’t forget to tick the Show ID option. Now it is time to curate the tracks. Depending on how meticulous and dedicated you are, it can take up to several days or a full week. In the case of muscle cells, where you can have many very dynamic spots (up to 9 at the same time have been observed in my case), so sometimes it can be very tricky to determine the track of a spot between two time points. To curate the tracks, open your favourite text editor and open a new text file named Spots_time_ID_idCell_ID_toDict.txt where you replace Cell_ID by the ID you chose previously for your cell of interest. The curation of the tracks is done backwards in time, so you have to start to the last time point. Here is the explanation on how to fill this text file. For that I will use the example of the text file shown [below](#im_spot_tracks_cur). To start, identify all the spots present at the last time point and their ID. For each one, add one line with the following structure: ID Spot_ID where you replace Spot_ID with the TrackID that you see on the last time point in Napari (see [red arrows](#im_spot_tracks_cur)). Then, each time a spot changes ID in Napari, write a new line below with the following structure: 
-tp: Spot_New_ID where tp is the timepoint at which the change occurs and Spot_New_ID the new ID of the spot backwards in time starting from this time point (note that there must be a space after the colon : but not before). For example, if the ID of the spot initially labelled as 8 changes to 7 at the time point 342, then you would have: 
-342: 7 (see [blue arrow](#im_spot_tracks_cur)). Repeat this each time a spot changes ID. If when going backwards in time, there is spots that suddenly appear (meaning that they disappear when we go forward in time), then add a new line ID Spot_ID with the ID of the newly appeared spot as the Spot_ID. If the ID is already being used, you can use any other number that is free. Then below, add the following line: 
-349: nan (see [pink arrow](#im_spot_tracks_cur)). After that, add another line of the structure: 
-tp: New_Spot_ID Appear where tp is the time point at which the spot appears and New_Spot_ID is the ID of this spot at that moment. For example, if a spot appears at the time point 332 with the ID 5, just write the following: 
-ID 5 (see [red arrow](#im_spot_tracks_cur))
-349: nan (see [pink arrow](#im_spot_tracks_cur))
-332: 5 Appear (see [black arrow](#im_spot_tracks_cur))
-If a spot disappears in another spot (e.g. they become too close to be distinguished), then add a line of the structure: 
-tp: Disappear in Remaining_Spot_ID where tp is the time point at which it happens and Remaining_Spot_ID is the ID of the spot in which the spot disappears. For example if at the time point 183, the spot that had the ID 4 at the time point 184 disappears into the remaining spot with the ID 6 at time point 183, you should mark:
-183: Disappear in 6 (see [green arrow](#im_spot_tracks_cur)). If later, the spot that disappeared is reappearing, just write a line with: 
-tp: New_ID_Spot Reappear where tp is the time point at which the spot reappears and New_ID_Spot is the ID with which the spot is reappearing.
-For example if the spot previously disappeared reappears at time point 134 with the ID 4, you should mark:
-134: 4 Reappear (see [second black arrow](#im_spot_tracks_cur)) 
-Finally, if a spot simply disappears (e.g. its signal fades), then just write Disappear instead of Disappear in Remaining_Spot_ID (see [second green arrow](#im_spot_tracks_cur)). If the spot was not present at the beginning of the imaging, meaning that when doing the curation backwards, the spot disappears and never reappears, just let a blank line after the line where you act the disappearance of the spot (see [third green arrow](#im_spot_tracks_cur)). Now repeat the exact same process with the nuclei of the cell you are interested in. If your cell has a single nucleus, this should be easy, you can use the dict_ids_to_track_737 to know what to write, without having to go through all the images again. Write everything in a text file named Nuc_time_ID_idCell_ID_toDict.txt.
+The goal of this script is to perform the tracking of the spots that were selected and curated in the previous script.  
+
+Before running the script, please replace the `dict_ids_to_track_540`, by your `dict_ids_to_track_737` object that you defined in the previous [script](#script5_how) (just copy the definition of the object in script 5 and paste it in script 6 instead of `dict_ids_to_track_540`).  
+You can run the whole script at once this time, unlike the previous script. This will open a napari windows. The tracking of the spots is the layer named data_spots. For this layer as well don’t forget to tick the *Show ID* option.  
+
+Now it is time to curate the tracks. Depending on how meticulous and dedicated you are, it can take up to several days or a full week. In the case of muscle cells, where you can have many very dynamic spots (up to 9 at the same time have been observed in my case), so sometimes it can be very tricky to determine the track of a spot between two time points. In case of easier cells (max 2 spots), this step can be really quick (no more than an afternoon to finish the whole pipeline).  
+To curate the tracks, open your favourite text editor and open a new text file named *Spots_time_ID_idCell_ID_toDict.txt* where you replace *Cell_ID* by [the ID you chose previously](#im_dict) for your cell of interest. The curation of the tracks is done backwards in time, so you have to start to the last time point.  
+To explain and illustrate how to fill this text file with the tracks' curation, I will use the example of the text file shown [below](#im_spot_tracks_cur).  
+
+To start, identify all the spots present at the last time point and their ID.  
+For each one, add one line with the following structure:  
+`ID Spot_ID` where you replace *Spot_ID* with the TrackID that you see on the last time point in Napari (see [red arrows](#im_spot_tracks_cur)).  
+Then, each time a spot changes ID in Napari, write a new line below with the following structure:  
+`tp: Spot_New_ID` where *tp* is the timepoint at which the change occurs and *Spot_New_ID* the new ID of the spot backwards in time starting from this time point (note that there must be a space after the colon : but not before).  
+For example, if the ID of the spot initially labelled as 8 changes to 7 at the time point 342, then you would have:  
+`342: 7` (see [blue arrow](#im_spot_tracks_cur))  
+Repeat this each time a spot changes ID. If when going backwards in time, there are spots that suddenly appear (meaning that they disappear when we go forward in time),  
+then add a new line `ID Spot_ID` with the ID of the newly appeared spot as the *Spot_ID*. If the ID is already being used, you can use any other number that is free.  
+Then below, add the following line:  
+`349: nan` (see [pink arrow](#im_spot_tracks_cur))  
+After that, add another line of the structure:  
+`tp: New_Spot_ID Appear` where *tp* is the time point at which the spot appears and *New_Spot_ID* is the ID of this spot at that moment.  
+For example, if a spot appears at the time point 332 with the ID 5, just write the following:  
+`ID 5` (see [red arrow](#im_spot_tracks_cur))  
+`349: nan` (see [pink arrow](#im_spot_tracks_cur))  
+`332: 5 Appear` (see [black arrow](#im_spot_tracks_cur))  
+
+
+If a spot disappears in another spot (e.g. they become too close to be distinguished), then add a line of the structure:  
+`tp: Disappear in Remaining_Spot_ID` where *tp* is the time point at which it happens and *Remaining_Spot_ID* is the ID of the spot in which the other spot disappears.  
+For example if at the time point 183, the spot that had the ID 4 at the time point 184 disappears into the remaining spot with the ID 6 at time point 183, you should mark:  
+`183: Disappear in 6` (see [green arrow](#im_spot_tracks_cur))  
+If later, the spot that disappeared is reappearing, just write a line with:  
+`tp: New_ID_Spot Reappear` where *tp* is the time point at which the spot reappears and *New_ID_Spot* is the ID with which the spot is reappearing.  
+For example if the spot previously disappeared reappears at time point 134 with the ID 4, you should mark:  
+`134: 4 Reappear` (see [second black arrow](#im_spot_tracks_cur))  
+
+
+Finally, if a spot simply disappears (e.g. its signal fades), then just write `Disappear` instead of `Disappear in Remaining_Spot_ID` (see [second green arrow](#im_spot_tracks_cur)).  
+If the spot was not present at the beginning of the imaging, meaning that when doing the curation backwards, the spot disappears and never reappears, just let a blank line after the line where you act the disappearance of the spot (see [third green arrow](#im_spot_tracks_cur)).  
+
+
+Now repeat the exact same process with the nuclei of the cell you are interested in. If your cell has a single nucleus, this should be easy, you can use the `dict_ids_to_track_737` to know what to write, without having to go through all the images again. Write everything in a text file named *Nuc_time_ID_idCell_ID_toDict.txt*.
 
 ###### Example of a text file used for tracks curation <a name="im_spot_tracks_cur"></a>
 ![Image to be found: Images_for_README/Tracks_Curation_example.png](./Images_for_README/Tracks_Curation_example.png)
