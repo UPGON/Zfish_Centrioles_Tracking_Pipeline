@@ -29,7 +29,7 @@ args = CLI.parse_args()
 tp=str(args.idx).zfill(5)
 path_in=Path(args.fld)
 
-fn=path_in / ("ome-tiff.companion-track-crop-crop--C01--T"+tp+".tif")
+fn=path_in / ("ome-tiff.companion-track-crop--C01--T"+tp+".tif")
 
 path_in=fn.parent
 
