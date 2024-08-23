@@ -325,6 +325,8 @@ This script just does exactly the same thing as [the previous script](#script7_m
 In addition, it also outputs a numpy array with the centre of the cell in each time point computed as the centre point between all the nuclei of the cell.  
 
 
+
+
 ### 2.9 Ninth script: [Dist_spot_nuc.py](./Scripts_Computer/Dist_spot_nuc.py)  <a name="script9_main"></a>
 #### Pre-requisites: <a name="script9_req"></a>
 Having run [the previous script](#script8_main).
