@@ -240,7 +240,7 @@ This script will output a csv file named *cur_spots_t349_idCell_ID.csv* where *C
 ### 2.6 Sixth script: [Curate_tracks.py](./Scripts_Computer/Curate_tracks.py)  <a name="script6_main"></a>
 
 #### Pre-requisites: <a name="script6_req"></a>
-This must be run on your computer. In addition of the same pre-requisites than the [5th script](#script5_req), you must have run the latter before running this one.
+This must be run on your computer. In addition of the same pre-requisites than the [5th script](#script5_req), you must have run [the latter](#script5_main) before running this one.
 
 #### Parameters of the script: <a name="script6_par"></a>
 All parameters/arguments present in this script are already described in the [parameters section of the 5th script](#script5_par). Please refer to it. 
@@ -258,6 +258,8 @@ To explain and illustrate how to fill this text file with the tracks' curation, 
 To start, identify all the spots present at the last time point and their ID.  
 For each one, add one line with the following structure:  
 `ID Spot_ID` where you replace *Spot_ID* with the TrackID that you see on the last time point in Napari (see [red arrows](#im_spot_tracks_cur)).  
+
+
 Then, each time a spot changes ID in Napari, write a new line below with the following structure:  
 `tp: Spot_New_ID` where *tp* is the timepoint at which the change occurs and *Spot_New_ID* the new ID of the spot backwards in time starting from this time point (note that there must be a space after the colon : but not before).  
 For example, if the ID of the spot initially labelled as 8 changes to 7 at the time point 342, then you would have:  
@@ -295,41 +297,48 @@ Now repeat the exact same process with the nuclei of the cell you are interested
 
 
 #### Outputs: <a name="script6_out"></a>
-This script doesn’t properly have any output, but after running it and before going to the next one, you should have filled the text file Spots_time_ID_idCell_ID_toDict.txt where you curate the tracks of the different spots of your cell of interest. Before moving on to the next script, make sure that the spots are sorted in numerical order in the Spots_time_ID_idCell_ID_toDict.txt file (e.g. the spot which main ID (the ID on the first row of a spot) is 9, is after one spot which main ID is 4). 
+This script doesn’t properly have any output, but after running it and before going to the next one, you should have filled the text file *Spots_time_ID_idCell_ID_toDict.txt* where you curate the tracks of the different spots of your cell of interest. **Before moving on to the next script**, make sure that the spots are sorted in numerical order in the *Spots_time_ID_idCell_ID_toDict.txt* file (e.g. the spot which main ID (the ID on the first row of a spot) is 9, is after one spot which main ID is 4).  
 
 
 ### 2.7 Seventh script: [Make_Dict_Tracks.py](./Scripts_Computer/Make_Dict_Tracks.py)  <a name="script7_main"></a>
 #### Pre-requisites: <a name="script7_req"></a>
-This must be run on your computer. In addition of the same pre-requisites than the 6th script, you must have run the latter before running this one and have your file Spots_time_ID_idCell_ID_toDict.txt ready.
+This must be run on your computer. In addition of the [same pre-requisites than the 6th script](#script6_req), you must have run [the latter](#script5_main) before running this one and have your file *Spots_time_ID_idCell_ID_toDict.txt* ready.
 
 #### Parameters of the script: <a name="script7_par"></a>
-path_files is the path in which the csv file of the spot, as well as the text file with the tracks annotations are located. In the previous script, it was usually called path_out_im. Cell_ID is the ID of the cell you are interested to. N_tracks is the total number of individual spots that you have in your cell (e.g. if you have in total 5 unique tracks in the cell along the whole time range, put 5). last_tp_tracks is a list in which you have to write the main ID of each unique spot (which is the ID appearing on the first row of the spot), in numerical order. For scale, see previous scripts.
+`path_files` is the path in which the csv file of the spot, as well as the text file with the tracks annotations are located. In the previous script, it was usually called path_out_im.  
+`Cell_ID` is the ID of the cell you are interested to.  
+`N_tracks` is the total number of individual spots that you have in your cell (e.g. if you have in total 5 unique tracks in the cell along the whole time range, put 5).  
+`last_tp_tracks` is a list in which you have to write the main ID of each unique spot (which is the ID appearing on the first row of the spot), in numerical order.  
+For `scale`, see [previous scripts](#script5_par).
 
 #### How to run the script: <a name="script7_how"></a>
 This script can be run all at once without further precautions. 
 
 #### Outputs: <a name="script7_out"></a>
-This scripts outputs two csv files: 
-all_cur_spots_idCell_ID.csv and all_cur_spots_idCell_ID_w_Merge.csv in which the tracks of the spots are corrected according to the annotation. The w_Merge file contains tracks for which when a spot was said to disappear in another spot, they receive the same track ID for this period of time.
+This scripts outputs two csv files:  
+*all_cur_spots_idCell_ID.csv* and *all_cur_spots_idCell_ID_w_Merge.csv* in which the tracks of the spots are corrected according to the annotation.  
+The w_Merge file contains tracks for which when a spot was said to disappear in another spot, they receive the same track ID for this period of time.  
 
 
 ### 2.8 Eighth script: [Make_nuc_Dict_track.py](./Scripts_Computer/Make_nuc_Dict_track.py)  <a name="script8_main"></a>
-This script just does exactly the same thing as the previous script, Make_Dict_Tracks.py, so just refers to the explanation of it. It just also outputs a numpy array with the centre of the cell in each time point computed as the centre point between all the nuclei of the cell.
+This script just does exactly the same thing as [the previous script](#script7_main), so just refers to the explanation of it.  
+In addition, it also outputs a numpy array with the centre of the cell in each time point computed as the centre point between all the nuclei of the cell.  
 
 
 ### 2.9 Ninth script: [Dist_spot_nuc.py](./Scripts_Computer/Dist_spot_nuc.py)  <a name="script9_main"></a>
 #### Pre-requisites: <a name="script9_req"></a>
-Having run the previous script.
+Having run [the previous script](#script8_main).
 
 #### Parameters of the script: <a name="script9_par"></a>
-The only new parameter is new_scale. This is similar to scale, but instead of being    (Z, Y, X) it is (T, Z, Y, X) with T=1. 
+The only new parameter is `new_scale`. This is similar to scale, but instead of being (Z, Y, X) it is (T, Z, Y, X) with `T=1`. 
 
 #### How to run the script: <a name="script9_how"></a>
 Just run everything at once
 
 #### Outputs: <a name="script9_out"></a>
-The script computes at each time point the distance of each spot to the closest nucleus belonging to the cell of interest. It also gets the intensity values of all the pixels belonging to a spot (see the last chunks of code). It outputs the csv file named all_cur_spots_idCell_ID_w_dist.csv of the spots with two new columns, which are the ID of the closest nucleus and the distance to it, as well as a dictionary containing the intensity values of each spot at each time point called:
-dict_spots_fluo_values_r2_5_xy0_75_z1_66_per_tp_idCell_ID.pkl.
+The script computes at each time point the distance of each spot to the closest nucleus belonging to the cell of interest. It also gets the intensity values of all the pixels belonging to a spot (see [the last chunk of the script](#https://github.com/UPGON/Zfish_Centrioles_Tracking_Pipeline/blob/a6f08beca6ce2cb0e536b9f7ddf20951aac82e0c/Scripts_Computer/Dist_spot_nuc.py#L195-L231)).  
+It outputs the csv file named *all_cur_spots_idCell_ID_w_dist.csv* of the spots with two new columns, which are the ID of the closest nucleus and the distance to it, as well as a dictionary containing the intensity values of each spot at each time point called:  
+*dict_spots_fluo_values_r2_5_xy0_75_z1_66_per_tp_idCell_ID.pkl*.
 
 
 ### 2.10 Tenth script: [Wrap_up_make_all_plots_Clean.py](./Scripts_Computer/Wrap_up_make_all_plots_Clean.py)  <a name="script10_main"></a>
