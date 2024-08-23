@@ -44,7 +44,9 @@ In case you should have any questions not addressed here about my code, you can 
 ## 1. Introduction <a name="intro"></a>
 
 In the documentation, I explain in details the detection + tracking pipeline. It is not working too bad to detect and track centrioles on live images acquired with the Viventis SPIM, but further improvement could defenitely be made.
-If you wish to do so, the best place to start is to improve the tracking of the centrioles by playing with the parameters of the different [btrack](https://btrack.readthedocs.io/en/latest/index.html) models to find the parameters that best suit your purpose. Afterhand, if you have the time to do so, you can also train a [StarDist](https://github.com/stardist/stardist) model based on your own manual annotations of nuclei segmentation.  
+If you wish to do so, the best place to start is to improve the tracking of the centrioles by playing with the parameters of the different [btrack](https://btrack.readthedocs.io/en/latest/index.html) [models](./btrack_models) to find the parameters that best suit your purpose. Afterhand, if you have the time to do so, you can also train a [StarDist](https://github.com/stardist/stardist) model based on your own manual annotations of nuclei segmentation.  
+
+The code in this repository is not clean, since I did not had the time to tidy my code. If you are not familaiar at all with python, you should know that lines of code that begins with a `#`are comments and thus are not executed and that when a line or multiple ones are between three quotation marks such as `""" text """` they are not executed as well.  
 &nbsp;
 &nbsp;
 ### 1.1 First steps in Fiji <a name="intro_fiji"></a>
