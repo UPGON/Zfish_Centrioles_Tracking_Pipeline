@@ -2,7 +2,7 @@
 
 These python scripts were originally written to allow the tracking of centrioles/centrin foci in muscles cells of Zebrafish. They can also be used with any other 3D + t images to track centrioles. 
 If you have 2D images, this will not work, since many places in the code are written considering there is three dimensions. However, if you know Python a bit, you can easily spot such places and adapt it to work on 2D + t images.
-Alternatively, you can also look to the short script written for Gabriella and Zhansaya project.  
+Alternatively, you can also look to [2D_version_attempt.py](./Scripts_Computer/2D_version_attempt.py), the short script attempt written for Gabriella and Zhansaya project.  
 
 \
 In case you should have any questions not addressed here about my code, you can contact me at florian.curvaia@me.com
