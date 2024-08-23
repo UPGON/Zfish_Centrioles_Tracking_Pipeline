@@ -56,7 +56,7 @@ Warning: This step can be very long ! Finding the right crop for your ROI, as we
 
 Once you have both 3D images and max projections for your cropped image, you can detect the spots using TrackMate plug-in in Fiji on the max-projected images. You can then save the spots detected to a csv file. For my images, the spots were detected using the following settings: LoG detection, 0.75 radius and approx. 21.18 for the quality threshold.  
 
-Once you saved the spots to a csv file, you'll need to open it and remove [the three bottom lines of the header](#im_spot_csv_bf) to only keep [the first one](#im_spot_csv_bf). Then when done, save the csv file.  
+Once you saved the spots to a csv file, you'll need to open it and remove [the three bottom lines of the header](#im_spot_csv_bf) to only keep [the first one](#im_spot_csv_af). Then when done, save the csv file.  
 Be careful, depending on the settings of your computer and of the application you use to remove the extra header lines, when you save it back to disk, it might save your file with values separated by semi-colon ";" instead of comma ",". If this should be the case, either change the settings of your computer/application, or change the way the csv files are loaded in python by replacing the "," by ";" in the lines where you see `pd.read_csv()`.  
 
 ##### Before removing the three extra header rows <a name="im_spot_csv_bf"></a>
