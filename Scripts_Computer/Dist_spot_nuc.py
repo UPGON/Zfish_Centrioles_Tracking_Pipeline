@@ -205,6 +205,7 @@ r=2.5 #Pseudo radius of the spot
 for i in range(350):
     spots_737_tp=spots_track_coords_737.loc[spots_track_coords_737["T"]==i]
     centrin=stack_C1[i].compute()
+    zmax, ymax, xmax=centrin.shape
     
     for ind, p in spots_737_tp.iterrows():
         cz, cy, cx= (p[["Z", "Y", "X"]].to_numpy() /scale).flatten().astype(int)
@@ -216,6 +217,21 @@ for i in range(350):
         #spots_track_coords_135.iloc[ind][["Nuc_ID", "Dist_nuc"]]=[loc_ind, dist_p]
         keep_mask = (dist < r).reshape((d, h, w))
         indices = np.where(keep_mask)
+        if not zmax>max(indices[0]):
+            new_ind=[]
+            for j in range(len(indices)):
+                new_ind.append(indices[j][indices[0]<zmax])
+            indices=tuple(new_ind)
+        if not ymax>max(indices[1]):
+            new_ind=[]
+            for j in range(len(indices)):
+                new_ind.append(indices[j][indices[1]<ymax])
+            indices=tuple(new_ind)
+        if not xmax>max(indices[2]):
+            new_ind=[]
+            for j in range(len(indices)):
+                new_ind.append(indices[j][indices[2]<xmax])
+            indices=tuple(new_ind)
         values=centrin[indices]
         s_ID=p.ID
         dict_spots_values_per_tp_737[i][s_ID]=values
