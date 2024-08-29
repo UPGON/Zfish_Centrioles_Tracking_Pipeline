@@ -42,15 +42,21 @@ Fluo_V2=True
 Z_corr=False
 log_corr=False
 
-if Fluo_V2:
-    Fluo="Fluo_V2"
-else:
-    Fluo="Fluo"
-
 
 scale=(0.75, 0.173, 0.173)
 new_scale=(1, 0.75, 0.173, 0.173)
 N_unique_spots=12
+
+
+Number_of_plots_in_Width=3
+Number_of_plots_in_Heigth=4
+Size_of_subplots_in_Width=16
+Size_of_subplots_in_Heigth=6
+
+Number_of_plots_in_Width_2=2
+Number_of_plots_in_Heigth_2=6
+Size_of_subplots_in_Width_2=24
+Size_of_subplots_in_Heigth_2=48
 
    
 #path_in_C3=Path("/Volumes/users/curvaia/Images/Live/20240321_Transplants/20240321_172724_Transplants_TgCentrinEos_H2BmCherry/e2-1_FLUO/To_observe_live_transplants/Tif/nuc_seg_npy/")
@@ -87,7 +93,7 @@ spots_tzyx_nuc=spots_track_coords[["ID", "T", "Z", "Y", "X"]].to_numpy()[:, 1:]/
 spots_nuc_npy_coords=spots_track_coords[["ID","T","Z", "Y", "X"]].astype(int)
 
 if Muscle_cells==True:
-    corner_spots_tzyx_nuc_df=pd.read_csv("/Users/floriancurvaia/Desktop/Uni/EPFL/Gönczy/Scripts/Images/Live_transplants/Smoothing/all_cur_Corner_spots_id"+str(Cell_ID)+".csv")
+    corner_spots_tzyx_nuc_df=pd.read_csv(path_in_files+"all_cur_Corner_spots_id"+str(Cell_ID)+".csv")
     Corner_spots=corner_spots_tzyx_nuc_df[["T","Z", "Y", "X"]].to_numpy()/new_scale
 
 
@@ -95,7 +101,43 @@ spots_merge=pd.read_csv(path_in_files+"all_cur_spots_id"+str(Cell_ID)+"_w_Merge.
 spots_merge.drop("Unnamed: 0", axis=1, inplace=True)
 
 
+def make_fig_1(N_W_plots=Number_of_plots_in_Width, N_H_plots=Number_of_plots_in_Heigth, 
+               scale_width=Size_of_subplots_in_Width, scale_heigth=Size_of_subplots_in_Heigth, 
+               N_spots=N_unique_spots, share_x=True, share_y=True):
+    
+    fig_height=scale_heigth*N_H_plots
+    fig_width=scale_width*N_W_plots
+    fig, axs=plt.subplots(N_H_plots, N_W_plots, figsize=(fig_width, fig_height), sharex=share_x, sharey=share_y)
+    
+    if N_W_plots* N_H_plots > N_spots:
+        N_diff=N_W_plots* N_H_plots-N_spots
+        for i in range(1, N_diff+1):
+            fig.delaxes(axs[N_H_plots-1, -i])
+    
+    elif N_unique_spots==1:
+        axs=np.array([axs])
 
+    fig.subplots_adjust(hspace=0.075)
+    fig.subplots_adjust(wspace=0.075)
+    return fig, axs
+
+def make_fig_2(N_W_plots=Number_of_plots_in_Width_2, N_H_plots=Number_of_plots_in_Heigth_2, 
+               scale_width=Size_of_subplots_in_Width_2, scale_heigth=Size_of_subplots_in_Heigth_2, 
+               N_spots=N_unique_spots, share_x=True, share_y=True):
+    
+    fig_height=scale_heigth*N_H_plots
+    fig_width=scale_width*N_W_plots
+    fig, axs=plt.subplots(N_H_plots, N_W_plots, figsize=(fig_width, fig_height), sharex=share_x, sharey=share_y)
+    
+    if not N_spots % 2 == 0 and N_spots!=1:
+        fig.delaxes(axs[N_H_plots-1, -1])
+    
+    elif N_unique_spots==1:
+        axs=np.array([axs])
+
+    fig.subplots_adjust(hspace=0.075)
+    fig.subplots_adjust(wspace=0.075)
+    return fig, axs
 
 #path_out=Path("/Volumes/users/curvaia/Images/Live/20240321_Transplants/20240321_172724_Transplants_TgCentrinEos_H2BmCherry/e2-1_FLUO/")
 
@@ -496,7 +538,7 @@ if Z_corr:
     ax.scatter(path_corr, intensity_plot*normalizer_stain, s=1, alpha=0.1)
     ax.set_xlabel("Z")
     ax.set_ylabel("Fluo")
-    fig.savefig(path_out_im+im_prefix+"Z_log_corr.png", dpi=300, bbox_inches='tight')
+    fig.savefig(path_out_im+im_prefix+"Z_corr.png", dpi=300, bbox_inches='tight')
     plt.close()
     
     spots_track_coords_w_fluo["Fluo_V2"]=spots_track_coords_w_fluo["Fluo_V2"]*normalizer_stain.flatten()
@@ -535,40 +577,6 @@ else:
     fig.savefig(path_out_im+im_prefix+"All_Z_vs_Fluo_ColTime.png", dpi=300, bbox_inches='tight')
     plt.close()
 
-"""
-for t in range(350):
-    spots_tp=spots_merge.loc[spots_merge["T"]==t].copy()
-    spots_tp.reset_index(inplace=True, drop=True)
-    df_as_npy=spots_tp[["X", "Y", "Z"]].to_numpy()
-    if len(np.unique(df_as_npy, axis=0))!=len(spots_tp):
-        #print(t)
-        unq, count = np.unique(spots_tp[["X", "Y", "Z"]].to_numpy(), axis=0, return_counts=True)
-        unq[count>1]
-        repeated_groups = unq[count > 1]
-        
-        index_fused_spots=[]
-        for repeated_group in repeated_groups:
-            repeated_idx = np.argwhere(np.all(df_as_npy == repeated_group, axis=1))
-            index_fused_spots.append(repeated_idx.ravel())
-        for inds in index_fused_spots:
-            fused_spots=spots_tp.iloc[inds]
-            fused_IDs=spots_tp.iloc[inds].ID.values
-            spots_df_tp=spots_track_coords_w_fluo.loc[spots_track_coords_w_fluo["T"]==t].copy()
-            SOI=spots_df_tp.loc[spots_df_tp.ID.isin(fused_IDs)]
-            SOI_ID=SOI.ID.values[0]
-            new_ID=list(set(fused_IDs)-set([SOI_ID]))[0]
-            new_row=SOI.to_numpy().flatten()
-            new_row[0]=new_ID
-            #new_row[-1]=new_row[-1]/2
-            spots_track_coords_w_fluo.loc[(spots_track_coords_w_fluo["T"]==t) & (spots_track_coords_w_fluo.ID==SOI_ID), [Fluo]]=new_row[-1]
-            spots_track_coords_w_fluo.loc[len(spots_track_coords_w_fluo)] = new_row
-            
-            #print(inds)
-            #print(repeated_idx.ravel())
-
-       #print()
-spots_track_coords_w_fluo.sort_values(["T", "ID"], inplace=True)
-"""
 
 single_spots_df_all_tp={} 
 
@@ -610,31 +618,8 @@ def plot_colourline(x,y,c, ax):
     im = ax.scatter(x, y, c=c, s=0, cmap=cm.turbo,  vmin=0, vmax=349)
     return im
 
-N_W_plots=3
-N_H_plots=4
-fig_width=48
-fig_height=24
+fig, axs=make_fig_1()
 
-N_W_plots_2=2
-N_H_plots_2=6
-fig_width_2=24
-fig_height_2=48
-"""
-
-N_W_plots=3
-N_H_plots=2
-fig_width=24
-fig_height=12
-
-N_W_plots_2=1
-N_H_plots_2=6
-fig_width_2=24
-fig_height_2=48
-"""
-fig, axs=plt.subplots(N_H_plots, N_W_plots, figsize=(fig_width, fig_height), sharex=True, sharey=True)
-
-fig.subplots_adjust(hspace=0.075)
-fig.subplots_adjust(wspace=0.075)
 for i, ax in zip(Unique_spots, axs.flatten()):
     spot_df=single_spots_df_all_tp[i]
     ax.plot(spot_df["T"], spot_df[Fluo]) #, c=spot_df["T"]
@@ -643,10 +628,8 @@ for i, ax in zip(Unique_spots, axs.flatten()):
 fig.savefig(path_out_im+im_prefix+"single_Mean_fluo_per_spots_vs_time.png", bbox_inches='tight', dpi=300)
 plt.close()
 
-fig, axs=plt.subplots(N_H_plots, N_W_plots, figsize=(fig_width, fig_height), sharex=True, sharey=True)
+fig, axs=make_fig_1()
 
-fig.subplots_adjust(hspace=0.075)
-fig.subplots_adjust(wspace=0.075)
 for i, ax in zip(Unique_spots, axs.flatten()):
     spot_df=single_spots_df_all_tp[i]
     #ax.plot(spot_df["T"], spot_df[Fluo]) #, c=spot_df["T"]
@@ -656,19 +639,7 @@ for i, ax in zip(Unique_spots, axs.flatten()):
 fig.savefig(path_out_im+im_prefix+"single_Mean_fluo_per_spots_vs_time_ColorZ.png", bbox_inches='tight', dpi=300)
 plt.close()
 
-"""
-fig, axs=plt.subplots(N_H_plots, N_W_plots, figsize=(fig_width, fig_height), sharex=True, sharey=True)
 
-fig.subplots_adjust(hspace=0.075)
-fig.subplots_adjust(wspace=0.075)
-for i, ax in zip(Unique_spots, axs.flatten()):
-    spot_df=single_spots_df_all_tp[i]
-    ax.plot(spot_df["T"], spot_df[Fluo])
-    ax.set_ylabel("Mean fluo intensity for spot "+str(i))
-    ax.set_xlabel("Time frame (a.u)")
-fig.savefig(path_out_im+"mean_fluo_vs_time_id"+str(Cell_ID)+"/"+im_prefix+"single_Mean_fluo_per_spots_Zcorr_vs_time.png", bbox_inches='tight', dpi=300)
-plt.close()
-"""
 fig, ax=plt.subplots(figsize=(14, 7), sharex=True, sharey=True)
 fig.subplots_adjust(hspace=0.075)
 fig.subplots_adjust(wspace=0.075)
@@ -691,10 +662,8 @@ ax.set_xlabel("Time frame (a.u)")
 fig.savefig(path_out_im+im_prefix+"all_dist_nuc_per_spots_vs_time.png", bbox_inches='tight', dpi=300)
 plt.close()
 
-fig, axs=plt.subplots(N_H_plots, N_W_plots, figsize=(fig_width, fig_height), sharex=True, sharey=True)
-    
-fig.subplots_adjust(hspace=0.075)
-fig.subplots_adjust(wspace=0.075)
+fig, axs=make_fig_1()
+
 for i, ax in zip(Unique_spots, axs.flatten()):
     spot_df=single_spots_df_all_tp[i]
     ax.plot(spot_df["T"], spot_df["Dist_nuc"])
@@ -703,7 +672,7 @@ for i, ax in zip(Unique_spots, axs.flatten()):
 fig.savefig(path_out_im+im_prefix+"single_dist_nuc_per_spots_vs_time.png", bbox_inches='tight', dpi=300)
 plt.close()
 
-fig, axs=plt.subplots(N_H_plots, N_W_plots, figsize=(fig_width, fig_height), sharex=True) #, sharey=True
+fig, axs=make_fig_1(share_y=False)
     
 fig.subplots_adjust(hspace=0.075)
 fig.subplots_adjust(wspace=0.125)
@@ -716,10 +685,7 @@ for i, ax in zip(Unique_spots, axs.flatten()):
 fig.savefig(path_out_im+im_prefix+"single_fluo_spots_vs_Z.png", bbox_inches='tight', dpi=300)
 plt.close()
 
-fig, axs=plt.subplots(N_H_plots, N_W_plots, figsize=(fig_width, fig_height), sharex=True, sharey=True)
-    
-fig.subplots_adjust(hspace=0.075)
-fig.subplots_adjust(wspace=0.075)
+fig, axs=make_fig_1()
 for i, ax in zip(Unique_spots, axs.flatten()):
     spot_df=single_spots_df_all_tp[i]
     ax.scatter(spot_df["Z"], spot_df["T"], c=spot_df[Fluo], cmap="viridis", s=5)
@@ -729,10 +695,7 @@ fig.savefig(path_out_im+im_prefix+"single_T_spots_vs_Z.png", bbox_inches='tight'
 plt.close()
 
 
-fig, axs=plt.subplots(N_H_plots, N_W_plots, figsize=(fig_width, fig_height), sharex=True, sharey=True)
-    
-fig.subplots_adjust(hspace=0.075)
-fig.subplots_adjust(wspace=0.075)
+fig, axs=make_fig_1()
 for i, ax in zip(Unique_spots, axs.flatten()):
     spot_sizes=dict_spot_size_tp[i]
     ax.plot(range(350), spot_sizes)
@@ -1041,10 +1004,7 @@ for s in Unique_spots:
     dist=np.sqrt(X_diff**2+Y_diff**2+Z_diff**2)
     dict_spots_speed[s]=dist
 
-fig, axs=plt.subplots(N_H_plots, N_W_plots, figsize=(fig_width, fig_height), sharex=True, sharey=True)
-
-fig.subplots_adjust(hspace=0.075)
-fig.subplots_adjust(wspace=0.075)
+fig, axs=make_fig_1()
 for i, ax in zip(Unique_spots, axs.flatten()):
     spot_speed=dict_spots_speed[i]
     ax.plot(range(1, 350), spot_speed)
@@ -1145,10 +1105,7 @@ for s in Unique_spots:
         cosine = np.dot(pos_tm1,pos_t)/(np.linalg.norm(pos_tm1)*np.linalg.norm(pos_t))
         cosine_pos_dict[s].append(cosine)
         
-fig, axs=plt.subplots(N_H_plots, N_W_plots, figsize=(fig_width, fig_height), sharex=True, sharey=True)
-    
-fig.subplots_adjust(hspace=0.075)
-fig.subplots_adjust(wspace=0.075)
+fig, axs=make_fig_1()
 for i, ax in zip(Unique_spots, axs.flatten()):
     cosine_spot=cosine_pos_dict[i]
     ax.plot(range(1,350), cosine_spot)
@@ -1378,10 +1335,7 @@ for coords_type in all_coords_types:
             cosine_dir_dict[s].append(cosine)
     """
     
-    fig, axs=plt.subplots(N_H_plots_2, N_W_plots_2, figsize=(fig_width_2, fig_height_2)) #, sharex=True, sharey=True
-        
-    fig.subplots_adjust(hspace=0.075)
-    fig.subplots_adjust(wspace=0.075)
+    fig, axs=make_fig_2(share_x=False, share_y=False)
     for i, ax in zip(Unique_spots, axs.flatten()):
         cosine_spot=cosine_dir_dict[i]
         ax.plot(range(1,349), cosine_spot)
@@ -1531,10 +1485,7 @@ for coords_type in all_coords_types:
     
     
     
-    fig, axs=plt.subplots(N_H_plots_2, N_W_plots_2, figsize=(fig_width_2, fig_height_2)) #, sharex=True, sharey=True
-        
-    fig.subplots_adjust(hspace=0.075)
-    fig.subplots_adjust(wspace=0.075)
+    fig, axs=make_fig_2(share_x=False, share_y=False)
     for i, ax in zip(Unique_spots, axs.flatten()):
         cosine_spot=cosine_dir_dict[i]
         c=1
@@ -1557,10 +1508,7 @@ for coords_type in all_coords_types:
     
     
     
-    fig, axs=plt.subplots(N_H_plots_2, N_W_plots_2, figsize=(fig_width_2, fig_height_2), sharex=True, sharey=True) #
-        
-    fig.subplots_adjust(hspace=0.075)
-    fig.subplots_adjust(wspace=0.075)
+    fig, axs=make_fig_2()
     for i, ax in zip(Unique_spots, axs.flatten()):
         angle_spot=angular_dist_dir_dict[i]
         ax.plot(range(1,349), angle_spot)
@@ -1572,10 +1520,7 @@ for coords_type in all_coords_types:
     
     
     
-    fig, axs=plt.subplots(N_H_plots_2, N_W_plots_2, figsize=(fig_width_2, fig_height_2), sharex=True, sharey=True)
-        
-    fig.subplots_adjust(hspace=0.075)
-    fig.subplots_adjust(wspace=0.075)
+    fig, axs=make_fig_2()
     for i, ax in zip(Unique_spots, axs.flatten()):
         cosine_spot=np.array(cosine_dir_dict[i])
         ax.plot(range(1,348), cosine_spot[1:]-cosine_spot[:-1])
@@ -1584,10 +1529,7 @@ for coords_type in all_coords_types:
     fig.savefig(path_out_im+coords_sub_dir+im_prefix+"single_cosine_similarity_direction_derivative_per_spots_vs_time.png", bbox_inches='tight', dpi=300)
     plt.close()
     
-    fig, axs=plt.subplots(N_H_plots, N_W_plots, figsize=(fig_width, fig_height), sharex=True, sharey=True)
-        
-    fig.subplots_adjust(hspace=0.075)
-    fig.subplots_adjust(wspace=0.075)
+    fig, axs=make_fig_1()
     for i, ax in zip(Unique_spots, axs.flatten()):
         cosine_spot=np.array(cosine_dir_dict[i])
         d1=cosine_spot[1:]-cosine_spot[:-1]
@@ -1805,10 +1747,7 @@ for coords_type in all_coords_types:
     
     
     
-    fig, axs=plt.subplots(N_H_plots_2, N_W_plots_2, figsize=(fig_width_2, fig_height_2), sharex=True, sharey=True)
-        
-    fig.subplots_adjust(hspace=0.075)
-    fig.subplots_adjust(wspace=0.075)
+    fig, axs=make_fig_2()
     for i, ax in zip(Unique_spots, axs.flatten()):
         ax.plot(range(1,349), spots_dir_norm_to_df[i-1])
         ax.set_ylabel("Norm of direction vector (spot "+str(i)+")")
