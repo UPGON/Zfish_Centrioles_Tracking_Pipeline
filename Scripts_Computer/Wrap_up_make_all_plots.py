@@ -204,7 +204,7 @@ stack_C4 = da.map_blocks(
 )
 """
 stack_C1=stack_C1.astype("int16")
-
+N_tp=stack_C1.shape[0]
 
 path_out_im= path_out_im +"mean_fluo_vs_time_id"+str(Cell_ID)+"/"
 #objs=btrack.io.segmentation_to_objects(segmentation=stack_C3, intensity_image=stack_C2, scale=scale)
@@ -259,7 +259,7 @@ dict_ids_to_track_737 = {
         tuple([6])
         
     )
-    for i in range(350)
+    for i in range(N_tp)
 }
 
 
@@ -268,7 +268,7 @@ dict_ids_to_track_737 = {
 
 nuc_737_coords=[]
 #Cell_ID=540
-for tp in range(350):
+for tp in range(N_tp):
     
     ids_nuc_to_track=dict_ids_to_track_737[tp]
     filt_coords=nuc_coords.loc[nuc_coords["T"]==int(tp)]
@@ -306,7 +306,7 @@ data_spots=spots_track_coords[["ID","T","Z", "Y", "X"]].to_numpy()
 
 if not Path(path_in_files+'spots_mean_fluo_tp_id'+str(Cell_ID)+'.pkl').exists():
 
-    for i in range(350):
+    for i in range(N_tp):
         spot_seg_tp=np.zeros(stack_C1[0].shape, dtype="int8")
         spots_tp=spots_track_coords.loc[spots_track_coords["T"]==i][["ID", "T", "Z", "Y", "X"]]
         for j in spots_tp.to_numpy():
@@ -360,7 +360,7 @@ if not Path(path_in_files+'spots_mean_fluo_tp_id'+str(Cell_ID)+'.pkl').exists():
         dict_spots_tp[i]=[]
         spots_mean_fluo_tp[i]=[]
     
-    for i in range(350):
+    for i in range(N_tp):
         spot_seg_tp=stack_C5[i]
         spot_sig_tp=stack_C1[i]
         spots_tp=spots_track_coords.loc[spots_track_coords["T"]==i]
@@ -405,7 +405,7 @@ for i in Unique_spots:
     #if not Fluo_V2:
     spot_df["Fluo"]=spots_mean_fluo_tp[i]
     spot_df["Fluo"]=spot_df["Fluo"]/np.log(spot_df["Z"] +1)
-    all_tp=set(range(350))
+    all_tp=set(range(N_tp))
     present_tp=set(spot_df["T"])
     origin_737=nuc_737_coords.loc[nuc_737_coords["T"].isin(present_tp), ["Z", "Y", "X"]]
     spot_df[["Z_reg", "Y_reg", "X_reg"]]=spot_df[["Z", "Y", "X"]]-origin_737.to_numpy()
@@ -441,16 +441,16 @@ spots_track_coords_w_fluo["Fluo_V2"]=np.nan
 if Fluo_V2:
     spots_mean_fluo_tp={}
     for s in Unique_spots:
-        #spots_mean_fluo_tp[s]=np.empty((350))
+        #spots_mean_fluo_tp[s]=np.empty((N_tp))
         spots_mean_fluo_tp[s]=[]
 dict_spot_size_tp={}
 for s in Unique_spots:
-    dict_spot_size_tp[s]=np.empty((350))
+    dict_spot_size_tp[s]=np.empty((N_tp))
     dict_spot_size_tp[s][:]=np.nan
 
 
 
-for i in range(350):
+for i in range(N_tp):
     spots_df_tp=spots_track_coords_w_fluo.loc[spots_track_coords_w_fluo["T"]==i].copy()
     unique_spots_tp=np.unique(spots_df_tp.ID.to_numpy())
     for s in unique_spots_tp:
@@ -584,7 +584,7 @@ for i in Unique_spots:
     spot_df=spots_track_coords_w_fluo.loc[spots_track_coords_w_fluo["ID"]==i].copy()
     spot_df.sort_values("T", inplace=True)
     spot_df.reset_index(inplace=True, drop=True)
-    all_tp=set(range(350))
+    all_tp=set(range(N_tp))
     present_tp=set(spot_df["T"])
     missing_tp=all_tp-present_tp
     all_tp_spot_df=spot_df.copy()
@@ -605,7 +605,7 @@ for i in Unique_spots:
 
 
 fig, ax=plt.subplots(figsize=(10, 5))
-ax.plot(list(range(350)), Mean_tp_fluo)
+ax.plot(list(range(N_tp)), Mean_tp_fluo)
 ax.set_ylabel("Mean fluo intensity per spot")
 ax.set_xlabel("Time frame (a.u)")
 fig.savefig(path_out_im+im_prefix+"Mean_tp_fluo_vs_time_id"+str(Cell_ID)+".png", bbox_inches='tight', dpi=300)
@@ -614,8 +614,8 @@ plt.close()
 def plot_colourline(x,y,c, ax):
     col = cm.turbo((c-np.min(c))/(np.max(c)-np.min(c)))
     for i in np.arange(len(x)-1):
-        ax.plot([x[i],x[i+1]], [y[i],y[i+1]], c=col[i]) #,  vmin=0, vmax=349
-    im = ax.scatter(x, y, c=c, s=0, cmap=cm.turbo,  vmin=0, vmax=349)
+        ax.plot([x[i],x[i+1]], [y[i],y[i+1]], c=col[i]) #,  vmin=0, vmax=N_tp-1
+    im = ax.scatter(x, y, c=c, s=0, cmap=cm.turbo,  vmin=0, vmax=N_tp-1)
     return im
 
 fig, axs=make_fig_1()
@@ -698,7 +698,7 @@ plt.close()
 fig, axs=make_fig_1()
 for i, ax in zip(Unique_spots, axs.flatten()):
     spot_sizes=dict_spot_size_tp[i]
-    ax.plot(range(350), spot_sizes)
+    ax.plot(range(N_tp), spot_sizes)
     ax.set_ylabel("N° of pixels in spot "+str(i))
     ax.set_xlabel("Time frame (a.u)")
 fig.savefig(path_out_im+im_prefix+"single_spots_size_vs_time.png", bbox_inches='tight', dpi=300)
@@ -732,7 +732,7 @@ def plot_colourline_3D(x,y,z, c, ax):
     col = cm.turbo((c-np.min(c))/(np.max(c)-np.min(c)))
     for i in np.arange(len(x)-1):
         ax.plot([x[i],x[i+1]], [y[i],y[i+1]], [z[i],z[i+1]], c=col[i])
-    im = ax.scatter(x, y, z, c=c, s=0, cmap=cm.turbo, vmin=0, vmax=349)
+    im = ax.scatter(x, y, z, c=c, s=0, cmap=cm.turbo, vmin=0, vmax=N_tp-1)
     return im
 
 for i in Unique_spots:
@@ -792,21 +792,21 @@ for i in np.unique(spots_track_coords.ID):
         
 
 N_spots_per_tp=[]
-for i in range(350):
+for i in range(N_tp):
     N_spots_tp=len(spots_track_coords.loc[spots_track_coords["T"]==i])
     N_spots_per_tp.append(N_spots_tp)
 
 N_spots_per_tp=np.array(N_spots_per_tp)
 
 
-N_spots_per_tp_smooth=np.zeros((350))
-for i in range(350):
+N_spots_per_tp_smooth=np.zeros((N_tp))
+for i in range(N_tp):
     lower_bound=i-2
     if lower_bound<0:
         lower_bound=0
     higher_bound=i+3
-    if higher_bound>349:
-        higher_bound=349
+    if higher_bound>N_tp-1:
+        higher_bound=N_tp-1
     N_spots_time_range=N_spots_per_tp[lower_bound:higher_bound]
     mode_tp=stats.mode(N_spots_time_range).mode
     count_tp=stats.mode(N_spots_time_range).count
@@ -825,7 +825,7 @@ mean_spots_dist_nuc_per_tp=[]
 
 N_nucs_per_tp_list=[]
 
-for i in range(350):
+for i in range(N_tp):
     spots_tp=spots_track_coords.loc[spots_track_coords["T"]==i]
     mean_spots_dist_nuc_tp=np.mean(spots_tp["Dist_nuc"])
     mean_spots_dist_nuc_per_tp.append(mean_spots_dist_nuc_tp)
@@ -905,7 +905,7 @@ if Cell_ID==737:
     dict_N_spots_per_sing_nuc["nuc_right"]=[]
     all_3_nucs=["nuc_left", "nuc_middle", "nuc_right"]
     
-    for i in range(350):
+    for i in range(N_tp):
         for n in all_3_nucs:
             if n in dict_N_spots_per_sing_nuc_per_tp[i].keys():
                 dict_N_spots_per_sing_nuc[n].append(dict_N_spots_per_sing_nuc_per_tp[i][n])
@@ -914,8 +914,8 @@ if Cell_ID==737:
                 
     fig, ax=plt.subplots()
     for n in all_3_nucs:
-        ax.plot(range(350), dict_N_spots_per_sing_nuc[n],  label=n)
-        #ax.scatter(range(350), dict_N_spots_per_sing_nuc[n],  label=n, s=5)
+        ax.plot(range(N_tp), dict_N_spots_per_sing_nuc[n],  label=n)
+        #ax.scatter(range(N_tp), dict_N_spots_per_sing_nuc[n],  label=n, s=5)
     ax.set_ylabel("Mean N° of spots per Nucleus")
     ax.set_xlabel("Time frame (a.u)")
     ax.legend()
@@ -924,7 +924,7 @@ if Cell_ID==737:
 
 """
 with open(path_out_im + "Closest_nuc_IDs_per_spot_per_tp_id"+str(Cell_ID)+".txt", "w") as f:
-    for i in range(350):
+    for i in range(N_tp):
         f.write("T: "+str(i)+"\n")
         spots_tp=spots_track_coords.loc[spots_track_coords["T"]==i]
         for spot in spots_tp.iterrows():
@@ -932,16 +932,16 @@ with open(path_out_im + "Closest_nuc_IDs_per_spot_per_tp_id"+str(Cell_ID)+".txt"
 """
 
 fig, ax=plt.subplots()
-#ax.plot(range(350), mean_spots_per_nuc_id135)
-ax.stem(range(350), N_spots_per_tp, bottom=2, markerfmt="none")
+#ax.plot(range(N_tp), mean_spots_per_nuc_id135)
+ax.stem(range(N_tp), N_spots_per_tp, bottom=2, markerfmt="none")
 ax.set_ylabel("N° of spots in cell")
 ax.set_xlabel("Time frame (a.u)")
 fig.savefig(path_out_im+im_prefix+"N_spots_vs_time.png", bbox_inches='tight', dpi=300)
 plt.close()
 
 fig, ax=plt.subplots()
-#ax.plot(range(350), mean_spots_per_nuc_id135)
-ax.stem(range(350), N_spots_per_tp_smooth, bottom=2, markerfmt="none")
+#ax.plot(range(N_tp), mean_spots_per_nuc_id135)
+ax.stem(range(N_tp), N_spots_per_tp_smooth, bottom=2, markerfmt="none")
 ax.set_ylabel("N° of spots in cell")
 ax.set_xlabel("Time frame (a.u)")
 fig.savefig(path_out_im+im_prefix+"N_spots_smooth_vs_time.png", bbox_inches='tight', dpi=300)
@@ -956,14 +956,14 @@ plt.close()
 
 
 fig, ax=plt.subplots()
-ax.scatter(range(350), mean_spots_dist_nuc_per_tp)
+ax.scatter(range(N_tp), mean_spots_dist_nuc_per_tp)
 ax.set_ylabel("Mean distance between spots and nucleus")
 ax.set_xlabel("Time frame (a.u)")
 fig.savefig(path_out_im+im_prefix+"Mean_dist_spots_nuc_vs_time.png", bbox_inches='tight', dpi=300)
 plt.close()
 
 fig, ax=plt.subplots()
-ax.plot(range(350), N_nucs_per_tp)
+ax.plot(range(N_tp), N_nucs_per_tp)
 ax.set_ylabel("N° of Nuclei")
 ax.set_xlabel("Time frame (a.u)")
 fig.savefig(path_out_im+im_prefix+"N_nuclei_vs_time.png", bbox_inches='tight', dpi=300)
@@ -971,21 +971,21 @@ plt.close()
 
 
 fig, ax=plt.subplots()
-ax.plot(range(350), Mean_N_spots_per_nuc_per_tp)
+ax.plot(range(N_tp), Mean_N_spots_per_nuc_per_tp)
 ax.set_ylabel("Mean N° of spots per Nucleus")
 ax.set_xlabel("Time frame (a.u)")
 fig.savefig(path_out_im+im_prefix+"Mean_N_spots_per_nuc_vs_time.png", bbox_inches='tight', dpi=300)
 plt.close()
 
 fig, ax=plt.subplots()
-ax.scatter(mean_spots_dist_nuc_per_tp,Mean_N_spots_per_nuc_per_tp, c=range(350), s=5)
+ax.scatter(mean_spots_dist_nuc_per_tp,Mean_N_spots_per_nuc_per_tp, c=range(N_tp), s=5)
 ax.set_ylabel("N° of spots for nucleus")
 ax.set_xlabel("Mean distance between spots and nucleus")
 fig.savefig(path_out_im+im_prefix+"Mean_spots_per_nuc_vs_Mean_dist_spots_nuc.png", bbox_inches='tight', dpi=300)
 plt.close()
 
 
-spots_fluo_to_df=np.zeros((len(Unique_spots), 350))
+spots_fluo_to_df=np.zeros((len(Unique_spots), N_tp))
 for s in Unique_spots:
     spot_df=single_spots_df_all_tp[s]
     spots_fluo_to_df[s-1]=spot_df[Fluo].to_numpy()
@@ -998,16 +998,16 @@ for s in Unique_spots:
     X_pos=spot_df["X_reg"].to_numpy()
     Y_pos=spot_df["Y_reg"].to_numpy()
     Z_pos=spot_df["Z_reg"].to_numpy()
-    X_diff=X_pos[1:350]-X_pos[:349]
-    Y_diff=Y_pos[1:350]-Y_pos[:349]
-    Z_diff=Z_pos[1:350]-Z_pos[:349]
+    X_diff=X_pos[1:N_tp]-X_pos[:N_tp-1]
+    Y_diff=Y_pos[1:N_tp]-Y_pos[:N_tp-1]
+    Z_diff=Z_pos[1:N_tp]-Z_pos[:N_tp-1]
     dist=np.sqrt(X_diff**2+Y_diff**2+Z_diff**2)
     dict_spots_speed[s]=dist
 
 fig, axs=make_fig_1()
 for i, ax in zip(Unique_spots, axs.flatten()):
     spot_speed=dict_spots_speed[i]
-    ax.plot(range(1, 350), spot_speed)
+    ax.plot(range(1, N_tp), spot_speed)
     ax.set_ylabel("spot "+str(i)+" speed (a.u.)")
     ax.set_xlabel("Time frame (a.u)")
 fig.savefig(path_out_im+im_prefix+"single_spots_speed_vs_time.png", bbox_inches='tight', dpi=300)
@@ -1018,7 +1018,7 @@ fig.subplots_adjust(hspace=0.075)
 fig.subplots_adjust(wspace=0.075)
 for i in Unique_spots:
     spot_speed=dict_spots_speed[i]
-    ax.plot(range(1, 350), spot_speed)
+    ax.plot(range(1, N_tp), spot_speed)
 ax.set_ylabel("spot "+str(i)+" speed (a.u.)")
 ax.set_xlabel("Time frame (a.u)")
 fig.savefig(path_out_im+im_prefix+"all_spots_speed_vs_time.png", bbox_inches='tight', dpi=300)
@@ -1099,7 +1099,7 @@ for s in Unique_spots:
 
 for s in Unique_spots:
     spot_df=single_spots_df_all_tp[s]
-    for t in range(1, 350):
+    for t in range(1, N_tp):
         pos_t=spot_df.loc[spot_df["T"]==t, ["X_reg", "Y_reg", "Z_reg"]].to_numpy().flatten()
         pos_tm1=spot_df.loc[spot_df["T"]==t-1, ["X_reg", "Y_reg", "Z_reg"]].to_numpy().flatten()
         cosine = np.dot(pos_tm1,pos_t)/(np.linalg.norm(pos_tm1)*np.linalg.norm(pos_t))
@@ -1108,7 +1108,7 @@ for s in Unique_spots:
 fig, axs=make_fig_1()
 for i, ax in zip(Unique_spots, axs.flatten()):
     cosine_spot=cosine_pos_dict[i]
-    ax.plot(range(1,350), cosine_spot)
+    ax.plot(range(1,N_tp), cosine_spot)
     ax.set_ylabel("Cosine similarity between position vectors (spot "+str(i)+")")
     ax.set_xlabel("Time frame (a.u)")
 fig.savefig(path_out_im+im_prefix+"single_cosine_similarity_position_per_spots_vs_time.png", bbox_inches='tight', dpi=300)
@@ -1119,7 +1119,7 @@ Cosine_Nuc_dirs=[]
 Vec_Nuc_dirs=[]
 
 
-for t in range(1, 349):
+for t in range(1, N_tp-1):
     pos_t=nuc_737_coords.loc[nuc_737_coords["T"]==t, ["X", "Y", "Z"]].to_numpy().flatten()
     pos_tm1=nuc_737_coords.loc[nuc_737_coords["T"]==t-1, ["X", "Y", "Z"]].to_numpy().flatten()
     pos_tp1=nuc_737_coords.loc[nuc_737_coords["T"]==t+1, ["X", "Y", "Z"]].to_numpy().flatten()
@@ -1127,7 +1127,7 @@ for t in range(1, 349):
     dir_t=pos_tp1-pos_t
     #if t==1:
     Vec_Nuc_dirs.append(dir_tm1)
-    if t==348:
+    if t==N_tp-2:
         Vec_Nuc_dirs.append(dir_t)
     
     cosine = np.dot(dir_tm1,dir_t)/(np.linalg.norm(dir_tm1)*np.linalg.norm(dir_t))
@@ -1158,7 +1158,7 @@ for s in Unique_spots:
     spot_df["X_avg"]=np.nan
     spot_df["Y_avg"]=np.nan
     spot_df["Z_avg"]=np.nan
-    for t in range(350):
+    for t in range(N_tp):
         time_wdw=list(range(t-moving_avg_range, t+moving_avg_range+1))
         all_pos_twdw=spot_df.loc[spot_df["T"].isin(time_wdw), ["X_reg", "Y_reg", "Z_reg"]].to_numpy()#.flatten()
         pos_avg_t=np.nanmean(all_pos_twdw, axis=0)
@@ -1281,7 +1281,7 @@ for coords_type in all_coords_types:
     
     for s in Unique_spots:
         spot_df=single_spots_df_all_tp[s]
-        for t in range(1, 349):
+        for t in range(1, N_tp-1):
             #pos_t=spot_df.loc[spot_df["T"]==t, ["X_reg", "Y_reg", "Z_reg"]].to_numpy().flatten()
             #pos_tm1=spot_df.loc[spot_df["T"]==t-1, ["X_reg", "Y_reg", "Z_reg"]].to_numpy().flatten()
             #pos_tp1=spot_df.loc[spot_df["T"]==t+1, ["X_reg", "Y_reg", "Z_reg"]].to_numpy().flatten()
@@ -1305,7 +1305,7 @@ for coords_type in all_coords_types:
             #if t==1:
             all_dirs_vecs_dict[s].append(dir_tm1)
             norm_dirs_vecs_dict[s].append(np.linalg.norm(dir_tm1))
-            if t==348:
+            if t==N_tp-2:
                 all_dirs_vecs_dict[s].append(dir_t)
                 norm_dirs_vecs_dict[s].append(np.linalg.norm(dir_t))
             
@@ -1315,7 +1315,7 @@ for coords_type in all_coords_types:
             angular_dist_dir_dict[s].append(np.arccos(cosine)/np.pi)
     """     
     all_covs=[]
-    for t in range(349):
+    for t in range(N_tp-1):
         coord_mat_T=np.zeros((3, len(Unique_spots)))
         for s in Unique_spots:
             coord_mat_T[:,s-1]= all_dirs_vecs_dict[s][t]
@@ -1338,7 +1338,7 @@ for coords_type in all_coords_types:
     fig, axs=make_fig_2(share_x=False, share_y=False)
     for i, ax in zip(Unique_spots, axs.flatten()):
         cosine_spot=cosine_dir_dict[i]
-        ax.plot(range(1,349), cosine_spot)
+        ax.plot(range(1,N_tp-1), cosine_spot)
         ax.set_ylabel("Cosine similarity between direction vectors (spot "+str(i)+")")
         ax.set_xlabel("Time frame (a.u)")
     fig.savefig(path_out_im+coords_sub_dir+im_prefix+"single_cosine_similarity_direction_per_spots_vs_time.png", bbox_inches='tight', dpi=300)
@@ -1350,7 +1350,7 @@ for coords_type in all_coords_types:
     fig.subplots_adjust(wspace=0.075)
     for i in Unique_spots:
         cosine_spot=cosine_dir_dict[i]
-        ax.plot(range(1,349), cosine_spot)
+        ax.plot(range(1,N_tp-1), cosine_spot)
         ax.set_ylabel("Cosine similarity between direction vectors (spot "+str(i)+")")
         ax.set_xlabel("Time frame (a.u)")
     fig.savefig(path_out_im+"mean_fluo_vs_time_id"+str(Cell_ID)+"/"+im_prefix+"single_cosine_similarity_direction_per_spots_vs_time.png", bbox_inches='tight', dpi=300)
@@ -1409,7 +1409,7 @@ for coords_type in all_coords_types:
         for s in Unique_spots:
             cosine_dir_simulation_dict[s]=[]
             c=1
-            for i in range(348):
+            for i in range(N_tp-2):
                 if sim_version=="Uniform":
                     rdm_angle=rdm.uniform(0, 2*np.pi)
                 elif sim_version=="T_prob":
@@ -1435,7 +1435,7 @@ for coords_type in all_coords_types:
         fig.subplots_adjust(wspace=0.075)
         for i, ax in zip(Unique_spots, axs.flatten()):
             cosine_spot=cosine_dir_simulation_dict[i]
-            ax.plot(range(1,349), cosine_spot)
+            ax.plot(range(1,N_tp-1), cosine_spot)
             ax.set_ylabel("Cosine similarity between direction vectors (spot "+str(i)+")")
             ax.set_xlabel("Time frame (a.u)")
         fig.savefig(path_out_im+coords_sub_dir+im_prefix+"single_cosine_similarity_direction_random_"+sim_version+"_simulation_per_spots_vs_time.png", bbox_inches='tight', dpi=300)
@@ -1511,7 +1511,7 @@ for coords_type in all_coords_types:
     fig, axs=make_fig_2()
     for i, ax in zip(Unique_spots, axs.flatten()):
         angle_spot=angular_dist_dir_dict[i]
-        ax.plot(range(1,349), angle_spot)
+        ax.plot(range(1,N_tp-1), angle_spot)
         ax.set_ylabel("Angular distance between direction vectors (spot "+str(i)+")")
         ax.set_xlabel("Time frame (a.u)")
     fig.savefig(path_out_im+coords_sub_dir+im_prefix+"single_angular_distance_direction_per_spots_vs_time.png", bbox_inches='tight', dpi=300)
@@ -1523,7 +1523,7 @@ for coords_type in all_coords_types:
     fig, axs=make_fig_2()
     for i, ax in zip(Unique_spots, axs.flatten()):
         cosine_spot=np.array(cosine_dir_dict[i])
-        ax.plot(range(1,348), cosine_spot[1:]-cosine_spot[:-1])
+        ax.plot(range(1,N_tp-2), cosine_spot[1:]-cosine_spot[:-1])
         ax.set_ylabel("Cosine similarity between direction vectors (spot "+str(i)+")")
         ax.set_xlabel("Time frame (a.u)")
     fig.savefig(path_out_im+coords_sub_dir+im_prefix+"single_cosine_similarity_direction_derivative_per_spots_vs_time.png", bbox_inches='tight', dpi=300)
@@ -1533,15 +1533,15 @@ for coords_type in all_coords_types:
     for i, ax in zip(Unique_spots, axs.flatten()):
         cosine_spot=np.array(cosine_dir_dict[i])
         d1=cosine_spot[1:]-cosine_spot[:-1]
-        ax.plot(range(1,347), d1[1:]-d1[:-1])
+        ax.plot(range(1,N_tp-3), d1[1:]-d1[:-1])
         ax.set_ylabel("Cosine similarity between direction vectors (spot "+str(i)+")")
         ax.set_xlabel("Time frame (a.u)")
     fig.savefig(path_out_im+coords_sub_dir+im_prefix+"single_cosine_similarity_direction_derivative2_per_spots_vs_time.png", bbox_inches='tight', dpi=300)
     plt.close()
     
-    spots_X_to_df=np.zeros((len(Unique_spots), 350))
-    spots_Y_to_df=np.zeros((len(Unique_spots), 350))
-    spots_Z_to_df=np.zeros((len(Unique_spots), 350))
+    spots_X_to_df=np.zeros((len(Unique_spots), N_tp))
+    spots_Y_to_df=np.zeros((len(Unique_spots), N_tp))
+    spots_Z_to_df=np.zeros((len(Unique_spots), N_tp))
     for s in Unique_spots:
         spot_df=single_spots_df_all_tp[s]
         spots_X_to_df[s-1]=spot_df["X"+coords_type].to_numpy()
@@ -1674,8 +1674,8 @@ for coords_type in all_coords_types:
     fig.savefig(path_out_im+coords_sub_dir+im_prefix+"Time_"+corr_coords_method+"_correlation_coords_mean_single_spots.png", dpi=300, bbox_inches='tight') #bbox_inches='tight',
     plt.close()
     
-    spots_dir_angle_to_df=np.zeros((len(Unique_spots), 348))
-    spots_dir_norm_to_df=np.zeros((len(Unique_spots), 348))
+    spots_dir_angle_to_df=np.zeros((len(Unique_spots), N_tp-2))
+    spots_dir_norm_to_df=np.zeros((len(Unique_spots), N_tp-2))
     for s in Unique_spots:
         spots_dir_angle_to_df[s-1]=angular_dist_dir_dict[s]
         spots_dir_norm_to_df[s-1]=norm_dirs_vecs_dict[s][1:]
@@ -1749,7 +1749,7 @@ for coords_type in all_coords_types:
     
     fig, axs=make_fig_2()
     for i, ax in zip(Unique_spots, axs.flatten()):
-        ax.plot(range(1,349), spots_dir_norm_to_df[i-1])
+        ax.plot(range(1,N_tp-1), spots_dir_norm_to_df[i-1])
         ax.set_ylabel("Norm of direction vector (spot "+str(i)+")")
         ax.set_xlabel("Time frame (a.u)")
     fig.savefig(path_out_im+coords_sub_dir+im_prefix+"single_direction_vector_norm_per_spots_vs_time.png", bbox_inches='tight', dpi=300)
@@ -1760,7 +1760,7 @@ for coords_type in all_coords_types:
     fig.subplots_adjust(hspace=0.075)
     fig.subplots_adjust(wspace=0.075)
     for i in Unique_spots:
-        ax.plot(range(1,349), spots_dir_norm_to_df[i-1])
+        ax.plot(range(1,N_tp-1), spots_dir_norm_to_df[i-1])
         ax.set_ylabel("Norm of direction vector (spot "+str(i)+")")
         ax.set_xlabel("Time frame (a.u)")
     fig.savefig(path_out_im+coords_sub_dir+im_prefix+"Direction_vector_norm_all_vs_time.png", bbox_inches='tight', dpi=300)
@@ -1781,7 +1781,7 @@ for comb in spots_comb:
     spot_2=comb[1]
     spot_df_1=single_spots_df_all_tp[spot_1]
     spot_df_2=single_spots_df_all_tp[spot_2]
-    for t in range(350):
+    for t in range(N_tp):
         pos_1=spot_df_1.loc[spot_df_1["T"]==t, ["X_reg", "Y_reg", "Z_reg"]].to_numpy().flatten()
         pos_2=spot_df_2.loc[spot_df_2["T"]==t, ["X_reg", "Y_reg", "Z_reg"]].to_numpy().flatten()
         dist=np.sqrt(np.sum((pos_2-pos_1)**2))
@@ -1793,7 +1793,7 @@ if Cell_ID==135 or Cell_ID==10:
     dist_comb=dict_dist_between_spots[c]
     spot_1=c[0]
     spot_2=c[1]
-    ax.plot(range(350), dist_comb)
+    ax.plot(range(N_tp), dist_comb)
     ax.set_ylabel("Distance between spots "+str(spot_1)+" and "+str(spot_2))
     ax.set_xlabel("Time frame (a.u)")
     fig.savefig(path_out_im+im_prefix+"single_dist_btw_spots_vs_time.png", bbox_inches='tight', dpi=300)
@@ -1807,7 +1807,7 @@ elif Cell_ID==737:
         dist_comb=dict_dist_between_spots[c]
         spot_1=c[0]
         spot_2=c[1]
-        ax.plot(range(350), dist_comb)
+        ax.plot(range(N_tp), dist_comb)
         ax.set_ylabel("spots "+str(spot_1)+" and "+str(spot_2))
         ax.set_xlabel("Time frame (a.u)")
     fig.savefig(path_out_im+im_prefix+"single_dist_btw_spots_vs_time.png", bbox_inches='tight', dpi=300)
@@ -1821,7 +1821,7 @@ elif Cell_ID==540:
         dist_comb=dict_dist_between_spots[c]
         spot_1=c[0]
         spot_2=c[1]
-        ax.plot(range(350), dist_comb)
+        ax.plot(range(N_tp), dist_comb)
         ax.set_ylabel("spots "+str(spot_1)+" and "+str(spot_2))
         ax.set_xlabel("Time frame (a.u)")
     fig.savefig(path_out_im+im_prefix+"single_dist_btw_spots_vs_time.png", bbox_inches='tight', dpi=300)
@@ -1836,7 +1836,7 @@ fig, ax=plt.subplots(1, 1, figsize=(24, 12), sharex=True, sharey=True)
     
 fig.subplots_adjust(hspace=0.075)
 fig.subplots_adjust(wspace=0.075)
-ax.plot(range(1,349), Cosine_Nuc_dirs)
+ax.plot(range(1,N_tp-1), Cosine_Nuc_dirs)
 ax.set_ylabel("Cosine similarity between direction vectors of Nuc737")
 ax.set_xlabel("Time frame (a.u)")
 fig.savefig(path_out_im+im_prefix+"single_cosine_similarity_direction_Nuc_vs_time.png", bbox_inches='tight', dpi=300)
@@ -1867,7 +1867,7 @@ if Open_napari:
     #if Cell_ID==737:
     points_layer = viewer.add_points(Corner_spots, ndim=4, size=200, scale=scale, blending='additive', opacity=0.3, face_color="yellow") #ndim=4
     #mask=points_layer.to_masks(stack_C1.shape)
-    #viewer.camera.angles = (-0.26571224801734533, -3.2349084850881065, 146.03256463889608)
+    #viewer.camera.angles = (-0.26571224801734533, -3.2N_tp-1084850881065, 146.03256463889608)
     
     
     
@@ -1924,8 +1924,8 @@ if Open_napari:
         animation.capture_keyframe(steps=10)
         
         viewer.dims.events.current_step.connect(center_camera_on_object)
-        viewer.dims.current_step = (349, 24, 540, 430)
-        animation.capture_keyframe(steps=349)
+        viewer.dims.current_step = (N_tp-1, 24, 540, 430)
+        animation.capture_keyframe(steps=N_tp-1)
         
         #animation.capture_keyframe(steps=60)
         
