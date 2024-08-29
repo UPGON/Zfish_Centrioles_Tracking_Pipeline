@@ -52,8 +52,6 @@ Number_of_plots_in_Heigth=4
 Size_of_subplots_in_Width=16
 Size_of_subplots_in_Heigth=6
 
-Number_of_plots_in_Width_2=2
-Number_of_plots_in_Heigth_2=6
 Size_of_subplots_in_Width_2=24
 Size_of_subplots_in_Heigth_2=48
 
@@ -119,10 +117,18 @@ def make_fig_1(N_W_plots=Number_of_plots_in_Width, N_H_plots=Number_of_plots_in_
     fig.subplots_adjust(wspace=0.075)
     return fig, axs
 
-def make_fig_2(N_W_plots=Number_of_plots_in_Width_2, N_H_plots=Number_of_plots_in_Heigth_2, 
-               scale_width=Size_of_subplots_in_Width_2, scale_heigth=Size_of_subplots_in_Heigth_2, 
+def make_fig_2(scale_width=Size_of_subplots_in_Width_2, scale_heigth=Size_of_subplots_in_Heigth_2, 
                N_spots=N_unique_spots, share_x=True, share_y=True):
-    
+    N_W_plots=2
+    if not N_spots % 2 == 0 and N_spots!=1:
+       N_H_plots=N_spots//2 +1
+       
+    elif N_spots==1:
+       N_H_plots=1
+       N_W_plots=1
+
+    else:
+       N_H_plots=N_spots//2
     fig_height=scale_heigth*N_H_plots
     fig_width=scale_width*N_W_plots
     fig, axs=plt.subplots(N_H_plots, N_W_plots, figsize=(fig_width, fig_height), sharex=share_x, sharey=share_y)
