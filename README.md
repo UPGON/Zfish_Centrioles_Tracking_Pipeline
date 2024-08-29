@@ -359,10 +359,10 @@ In addition, it also outputs a numpy array with the centre of the cell in each t
 Having run [the previous script](#script8_main).
 
 #### Parameters of the script: <a name="script9_par"></a>
-The only new parameter is `new_scale`. This is similar to scale, but instead of being (Z, Y, X) it is (T, Z, Y, X) with `T=1`. 
+The only new parameter is `new_scale`. This is similar to scale, but instead of being (Z, Y, X) it is (T, Z, Y, X) with `T=1`.  
 
 #### How to run the script: <a name="script9_how"></a>
-Just run everything at once
+Just run everything at once.  
 
 #### Outputs: <a name="script9_out"></a>
 The script computes at each time point the distance of each spot to the closest nucleus belonging to the cell of interest. It also gets the intensity values of all the pixels belonging to a spot (see [the last chunk of the script](#https://github.com/UPGON/Zfish_Centrioles_Tracking_Pipeline/blob/a6f08beca6ce2cb0e536b9f7ddf20951aac82e0c/Scripts_Computer/Dist_spot_nuc.py#L195-L231)).  
