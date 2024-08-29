@@ -38,7 +38,6 @@ Cell_ID=540
 Muscle_cells=True
 Open_napari=True
 Record_Movie=False
-Fluo_V2=True
 Z_corr=False
 log_corr=False
 
@@ -73,12 +72,11 @@ with btrack.io.HDF5FileHandler(
 im_prefix=""
     
 
-if Fluo_V2:
-    path_out_im="/Users/floriancurvaia/Desktop/Uni/EPFL/Gönczy/Scripts/Images/Live_transplants/Fluo_V2/" #Z_corr/
-    if Z_corr:
-        path_out_im="/Users/floriancurvaia/Desktop/Uni/EPFL/Gönczy/Scripts/Images/Live_transplants/Fluo_V2/Z_corr/" 
-else:
-    path_out_im="/Users/floriancurvaia/Desktop/Uni/EPFL/Gönczy/Scripts/Images/Live_transplants/Smoothing/"
+
+ path_out_im="/Users/floriancurvaia/Desktop/Uni/EPFL/Gönczy/Scripts/Images/Live_transplants/Fluo_V2/" #Z_corr/
+ if Z_corr:
+     path_out_im="/Users/floriancurvaia/Desktop/Uni/EPFL/Gönczy/Scripts/Images/Live_transplants/Fluo_V2/Z_corr/" 
+
     
 path_in_files="/Users/floriancurvaia/Desktop/Uni/EPFL/Gönczy/Scripts/Images/Live_transplants/Smoothing/"
 
@@ -304,97 +302,6 @@ data_spots=spots_track_coords[["ID","T","Z", "Y", "X"]].to_numpy()
 
 #np.save(path_out_im+'spots_coords_track_id737.npy', data_spots)
 
-if not Path(path_in_files+'spots_mean_fluo_tp_id'+str(Cell_ID)+'.pkl').exists():
-
-    for i in range(N_tp):
-        spot_seg_tp=np.zeros(stack_C1[0].shape, dtype="int8")
-        spots_tp=spots_track_coords.loc[spots_track_coords["T"]==i][["ID", "T", "Z", "Y", "X"]]
-        for j in spots_tp.to_numpy():
-            x_spot=int(j[-1]/scale[-1])
-            y_spot=int(j[-2]/scale[-2])
-            z_spot=int(j[2]/scale[0])
-            ID=int(j[0])
-            spot_seg_tp[z_spot, y_spot, x_spot]=ID
-            spot_seg_tp[z_spot-1, y_spot, x_spot]=ID
-            try:
-                spot_seg_tp[z_spot+1, y_spot, x_spot]=ID
-            except IndexError:
-                pass
-            spot_seg_tp[z_spot, y_spot-1, x_spot]=ID
-            spot_seg_tp[z_spot, y_spot+1, x_spot]=ID
-            spot_seg_tp[z_spot, y_spot, x_spot-1]=ID
-            spot_seg_tp[z_spot, y_spot, x_spot+1]=ID
-            
-            #x_spot_coords=[]
-            #x_spot_coords.append(x_spot-1)
-            #x_spot_coords.append(x_spot)
-            #x_spot_coords.append(x_spot+1)
-        np.save(path_in_C5.as_posix()+"/Spots_seg_"+str(i).zfill(5)+"_Z.npy", spot_seg_tp)
-    
-    
-    filenames_C5 = sorted(path_in_C5.glob('*.npy'))
-    
-    def read_one_image_C5(block_id, filenames=filenames_C5, axis=0):
-        # a function that reads in one chunk of data
-        path = filenames[block_id[axis]]
-        image = np.load(path)
-        return np.expand_dims(image, axis=axis)
-    
-    sample_C5 = np.load(filenames_C5[0])
-    
-    stack_C5 = da.map_blocks(
-        read_one_image_C5,
-        dtype=sample_C5.dtype,
-        chunks=( (1,) * len(filenames_C5), *sample_C5.shape )
-    )
-    
-    
-    dict_spots_tp={}
-    
-    spots_mean_fluo_tp={}
-    
-    Mean_tp_fluo=[]
-    
-    for i in np.unique(spots_track_coords.ID):
-        #if i not in dict_spots_tp.keys():
-        dict_spots_tp[i]=[]
-        spots_mean_fluo_tp[i]=[]
-    
-    for i in range(N_tp):
-        spot_seg_tp=stack_C5[i]
-        spot_sig_tp=stack_C1[i]
-        spots_tp=spots_track_coords.loc[spots_track_coords["T"]==i]
-        tp_all_fluo=[]
-        for j in spots_tp.ID.to_numpy():
-            mean_fluo=np.mean(spot_sig_tp[spot_seg_tp==j]).compute()
-            spots_mean_fluo_tp[j].append(mean_fluo)
-            tp_all_fluo.append(mean_fluo)
-            dict_spots_tp[j].append(i)
-        Mean_tp_fluo.append(np.mean(tp_all_fluo))
-        
-    Mean_tp_fluo=np.array(Mean_tp_fluo)
-    
-    np.save(path_out_im+'Mean_tp_fluo_id'+str(Cell_ID)+'.npy', Mean_tp_fluo)
-    
-    with open(path_in_files+'spots_mean_fluo_tp_id'+str(Cell_ID)+'.pkl', 'wb+') as f:
-        pickle.dump(spots_mean_fluo_tp, f)
-        
-    with open(path_in_files+'dict_spots_tp_id'+str(Cell_ID)+'.pkl', 'wb+') as f:
-        pickle.dump(dict_spots_tp, f)
-
-
-
-with open(path_in_files+'spots_mean_fluo_tp_id'+str(Cell_ID)+'.pkl', 'rb') as f:
-    spots_mean_fluo_tp = pickle.load(f)
-    
-with open(path_in_files+'dict_spots_tp_id'+str(Cell_ID)+'.pkl', 'rb') as f:
-    dict_spots_tp = pickle.load(f)
-
-Mean_tp_fluo=np.load(path_in_files+'Mean_tp_fluo_id'+str(Cell_ID)+'.npy')
-
-
-
-
 Unique_spots=list(range(1, N_unique_spots+1)) #Change between 6 (737) and 2 (135)
 all_spots_w_fluo=[]
 single_spots_df_all_tp={}
@@ -402,9 +309,6 @@ for i in Unique_spots:
     spot_df=spots_track_coords.loc[spots_track_coords["ID"]==i].copy()
     spot_df.sort_values("T", inplace=True)
     spot_df.reset_index(inplace=True, drop=True)
-    #if not Fluo_V2:
-    spot_df["Fluo"]=spots_mean_fluo_tp[i]
-    spot_df["Fluo"]=spot_df["Fluo"]/np.log(spot_df["Z"] +1)
     all_tp=set(range(N_tp))
     present_tp=set(spot_df["T"])
     origin_737=nuc_737_coords.loc[nuc_737_coords["T"].isin(present_tp), ["Z", "Y", "X"]]
@@ -416,7 +320,7 @@ for i in Unique_spots:
         #if Fluo_V2:
         #    new_row=np.empty(12)
         #else:
-        new_row=np.empty(11)
+        new_row=np.empty(10)
         new_row[:]=np.nan
         new_row[0]=i
         new_row[1]=t
@@ -437,12 +341,12 @@ with open(path_in_files+'dict_spots_fluo_values_r2_5_xy0_75_z1_66_per_tp_id'+str
 
 
 all_spots_w_fluo=[]
-spots_track_coords_w_fluo["Fluo_V2"]=np.nan
-if Fluo_V2:
-    spots_mean_fluo_tp={}
-    for s in Unique_spots:
-        #spots_mean_fluo_tp[s]=np.empty((N_tp))
-        spots_mean_fluo_tp[s]=[]
+spots_track_coords_w_fluo["Fluo"]=np.nan
+
+spots_mean_fluo_tp={}
+for s in Unique_spots:
+   #spots_mean_fluo_tp[s]=np.empty((N_tp))
+   spots_mean_fluo_tp[s]=[]
 dict_spot_size_tp={}
 for s in Unique_spots:
     dict_spot_size_tp[s]=np.empty((N_tp))
@@ -461,8 +365,7 @@ for i in range(N_tp):
         vals_to_keep=values[values>q]
         dict_spot_size_tp[s][i]=len(vals_to_keep)
         #fluo_v2=np.sum(vals_to_keep)
-        if Fluo_V2:
-            spots_mean_fluo_tp[s].append(np.mean(vals_to_keep))
+        spots_mean_fluo_tp[s].append(np.mean(vals_to_keep))
         fluo_v2=np.mean(vals_to_keep)
         if Z_corr:
             if log_corr:
@@ -471,7 +374,7 @@ for i in range(N_tp):
                 corr=spots_df_tp.loc[spots_df_tp.ID==s, "Z"].values[0]+1
         else:
             corr=1
-        spots_df_tp.loc[spots_df_tp.ID==s, "Fluo_V2"]=fluo_v2#/corr
+        spots_df_tp.loc[spots_df_tp.ID==s, "Fluo"]=fluo_v2#/corr
     all_spots_w_fluo.append(spots_df_tp)
 
 
@@ -484,17 +387,17 @@ if Z_corr:
     min_max_spot_dict={}
     for s in Unique_spots:
         spot_df=spots_track_coords_w_fluo.loc[spots_track_coords_w_fluo["ID"]==s].copy()
-        fluo_spot=spot_df["Fluo_V2"]
+        fluo_spot=spot_df["Fluo"]
         min_max_spot_dict[s]=[fluo_spot.min(), fluo_spot.max()]
         #fluo_spot=(fluo_spot-fluo_spot.mean())/fluo_spot.std()
         fluo_spot=(fluo_spot-fluo_spot.min())/(fluo_spot.max()-fluo_spot.min())
         
-        spots_track_coords_w_fluo.loc[spots_track_coords_w_fluo["ID"]==s, "Fluo_V2"]=fluo_spot
+        spots_track_coords_w_fluo.loc[spots_track_coords_w_fluo["ID"]==s, "Fluo"]=fluo_spot
     
     path_corr=spots_track_coords_w_fluo["Z"].to_numpy().reshape(-1, 1) *-1
     path_corr-=path_corr.min()
-    intensity_plot=spots_track_coords_w_fluo["Fluo_V2"].to_numpy().reshape(-1, 1)
-    intensity_reg=spots_track_coords_w_fluo["Fluo_V2"].to_numpy().reshape(-1, 1)
+    intensity_plot=spots_track_coords_w_fluo["Fluo"].to_numpy().reshape(-1, 1)
+    intensity_reg=spots_track_coords_w_fluo["Fluo"].to_numpy().reshape(-1, 1)
     fig, ax=plt.subplots()
     ax.scatter(path_corr,intensity_plot, c=spots_track_coords_w_fluo["T"], s=1)
     ax.set_xlabel("Z")
@@ -541,16 +444,16 @@ if Z_corr:
     fig.savefig(path_out_im+im_prefix+"Z_corr.png", dpi=300, bbox_inches='tight')
     plt.close()
     
-    spots_track_coords_w_fluo["Fluo_V2"]=spots_track_coords_w_fluo["Fluo_V2"]*normalizer_stain.flatten()
+    spots_track_coords_w_fluo["Fluo"]=spots_track_coords_w_fluo["Fluo"]*normalizer_stain.flatten()
     for s in Unique_spots:
         spot_df=spots_track_coords_w_fluo.loc[spots_track_coords_w_fluo["ID"]==s].copy()
-        fluo_spot=spot_df["Fluo_V2"]
+        fluo_spot=spot_df["Fluo"]
         #fluo_spot=(fluo_spot-fluo_spot.mean())/fluo_spot.std()
         fluo_spot_min, fluo_spot_max=min_max_spot_dict[s]
         fluo_spot=(fluo_spot*(fluo_spot_max-fluo_spot_min))+fluo_spot_min
-        spots_track_coords_w_fluo.loc[spots_track_coords_w_fluo["ID"]==s, "Fluo_V2"]=fluo_spot
+        spots_track_coords_w_fluo.loc[spots_track_coords_w_fluo["ID"]==s, "Fluo"]=fluo_spot
 
-    intensity=spots_track_coords_w_fluo["Fluo_V2"].to_numpy().reshape(-1, 1)
+    intensity=spots_track_coords_w_fluo["Fluo"].to_numpy().reshape(-1, 1)
     fig, ax=plt.subplots()
     ax.scatter(path_corr,intensity, c=spots_track_coords_w_fluo["T"], s=1)
     ax.set_xlabel("Z")
@@ -568,8 +471,8 @@ if Z_corr:
 else:
     path_corr=spots_track_coords_w_fluo["Z"].to_numpy().reshape(-1, 1) *-1
     path_corr-=path_corr.min()
-    intensity_plot=spots_track_coords_w_fluo["Fluo_V2"].to_numpy().reshape(-1, 1)
-    intensity_reg=spots_track_coords_w_fluo["Fluo_V2"].to_numpy().reshape(-1, 1)
+    intensity_plot=spots_track_coords_w_fluo["Fluo"].to_numpy().reshape(-1, 1)
+    intensity_reg=spots_track_coords_w_fluo["Fluo"].to_numpy().reshape(-1, 1)
     fig, ax=plt.subplots()
     ax.scatter(path_corr,intensity_plot, c=spots_track_coords_w_fluo["T"], s=1)
     ax.set_xlabel("Z")
@@ -592,7 +495,7 @@ for i in Unique_spots:
         #if Fluo_V2:
         #    new_row=np.empty(12)
         #else:
-        new_row=np.empty(12)
+        new_row=np.empty(11)
         new_row[:]=np.nan
         new_row[0]=i
         new_row[1]=t
@@ -603,13 +506,6 @@ for i in Unique_spots:
     all_tp_spot_df.reset_index(inplace=True, drop=True)
     single_spots_df_all_tp[i]=all_tp_spot_df
 
-
-fig, ax=plt.subplots(figsize=(10, 5))
-ax.plot(list(range(N_tp)), Mean_tp_fluo)
-ax.set_ylabel("Mean fluo intensity per spot")
-ax.set_xlabel("Time frame (a.u)")
-fig.savefig(path_out_im+im_prefix+"Mean_tp_fluo_vs_time_id"+str(Cell_ID)+".png", bbox_inches='tight', dpi=300)
-plt.close()
 
 def plot_colourline(x,y,c, ax):
     col = cm.turbo((c-np.min(c))/(np.max(c)-np.min(c)))
@@ -622,7 +518,7 @@ fig, axs=make_fig_1()
 
 for i, ax in zip(Unique_spots, axs.flatten()):
     spot_df=single_spots_df_all_tp[i]
-    ax.plot(spot_df["T"], spot_df[Fluo]) #, c=spot_df["T"]
+    ax.plot(spot_df["T"], spot_df["Fluo"]) #, c=spot_df["T"]
     ax.set_ylabel("Mean fluo intensity for spot "+str(i))
     ax.set_xlabel("Time frame (a.u)")
 fig.savefig(path_out_im+im_prefix+"single_Mean_fluo_per_spots_vs_time.png", bbox_inches='tight', dpi=300)
@@ -633,7 +529,7 @@ fig, axs=make_fig_1()
 for i, ax in zip(Unique_spots, axs.flatten()):
     spot_df=single_spots_df_all_tp[i]
     #ax.plot(spot_df["T"], spot_df[Fluo]) #, c=spot_df["T"]
-    plot_colourline(spot_df["T"], spot_df[Fluo], spot_df["Z"], ax)
+    plot_colourline(spot_df["T"], spot_df["Fluo"], spot_df["Z"], ax)
     ax.set_ylabel("Mean fluo intensity for spot "+str(i))
     ax.set_xlabel("Time frame (a.u)")
 fig.savefig(path_out_im+im_prefix+"single_Mean_fluo_per_spots_vs_time_ColorZ.png", bbox_inches='tight', dpi=300)
@@ -645,7 +541,7 @@ fig.subplots_adjust(hspace=0.075)
 fig.subplots_adjust(wspace=0.075)
 for i in Unique_spots:
     spot_df=single_spots_df_all_tp[i]
-    ax.plot(spot_df["T"], spot_df[Fluo])
+    ax.plot(spot_df["T"], spot_df["Fluo"])
 ax.set_ylabel("Mean fluo intensity per spot")
 ax.set_xlabel("Time frame (a.u)")
 fig.savefig(path_out_im+im_prefix+"all_Mean_fluo_per_spots_vs_time.png", bbox_inches='tight', dpi=300)
@@ -678,7 +574,7 @@ fig.subplots_adjust(hspace=0.075)
 fig.subplots_adjust(wspace=0.125)
 for i, ax in zip(Unique_spots, axs.flatten()):
     spot_df=single_spots_df_all_tp[i]
-    ax.scatter(spot_df["Z"], spot_df[Fluo], c=spot_df["T"], cmap="viridis", s=5)
+    ax.scatter(spot_df["Z"], spot_df["Fluo"], c=spot_df["T"], cmap="viridis", s=5)
     ax.set_ylabel("Mean Intensity (spot "+str(i)+")")
     ax.set_xlabel("Z")
 #plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.125, hspace=0.075)
@@ -688,7 +584,7 @@ plt.close()
 fig, axs=make_fig_1()
 for i, ax in zip(Unique_spots, axs.flatten()):
     spot_df=single_spots_df_all_tp[i]
-    ax.scatter(spot_df["Z"], spot_df["T"], c=spot_df[Fluo], cmap="viridis", s=5)
+    ax.scatter(spot_df["Z"], spot_df["T"], c=spot_df["Fluo"], cmap="viridis", s=5)
     ax.set_ylabel("T (spot "+str(i)+")")
     ax.set_xlabel("Z")
 fig.savefig(path_out_im+im_prefix+"single_T_spots_vs_Z.png", bbox_inches='tight', dpi=300)
