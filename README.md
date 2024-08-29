@@ -383,7 +383,6 @@ Having run [the previous script](#script9_main). You must create/choose a folder
 `Z_corr`: set to True if you wish to perform correction of intensity along Z and T (Not recommended, except if for your cell/images you see a clear correlation between intensity values and Z or T).  
 `log_corr`: set to True if you wish the Z-correction to be log-based (not recommended).  
 `N_unique_spots`: Number of unique spots (=unique tracks) in your cell.  
-`path_in_C5`: path to the *Spots_seg_trackID_idCell_ID_final* folder.  
 `path_out_movies`: path to the folder where you want to save your movies.  
 `path_out_im`: path to the folder containing the *mean_fluo_vs_time_idCell_ID* and the *Z_corr* folders.  
 `path_config`: path to the [btrack-models](./btrack_models) folder.  
