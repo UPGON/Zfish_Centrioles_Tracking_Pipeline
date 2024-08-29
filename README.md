@@ -371,16 +371,15 @@ It outputs the csv file named *all_cur_spots_idCell_ID_w_dist.csv* of the spots 
 &nbsp;
 &nbsp;
 
-### 2.10 Tenth script: [Wrap_up_make_all_plots_Clean.py](./Scripts_Computer/Wrap_up_make_all_plots_Clean.py)  <a name="script10_main"></a>
+### 2.10 Tenth script: [Wrap_up_make_all_plots.py](./Scripts_Computer/Wrap_up_make_all_plots.py)  <a name="script10_main"></a>
 #### Pre-requisites: <a name="script10_req"></a>
-Having run [the previous script](#script9_main). You must also create a next to *volumes* a folder named *Spots_seg_trackID_idCell_ID_final*. You must create/choose a folder where you want the subfolders containing the plots of each cell that you analyse to be. Inside this folder, create a folder named *mean_fluo_vs_time_idCell_ID*, as well as a folder named *Z_corr*. In the *Z_corr* folder make another folder named *mean_fluo_vs_time_idCell_ID*.
+Having run [the previous script](#script9_main). You must create/choose a folder where you want the subfolders containing the plots of each cell that you analyse to be. Inside this folder, create a folder named *mean_fluo_vs_time_idCell_ID*, as well as a folder named *Z_corr*. In the *Z_corr* folder make another folder named *mean_fluo_vs_time_idCell_ID*.
 
 
 #### Parameters of the script: <a name="script10_par"></a>
 `Muscle_cells`: set to True if the cell you analyse is a Muscle one and has Corner spots that have already been curated.  
 `Open_napari`: set to True if you wish to open Napari at the end of the execution of the script.  
 `Record_Movie`: Always let this to False. If you wish to record a movie, just run the last chunk of code after having open Napari.  
-`Fluo_V2`: Just let that alwas to True.  
 `Z_corr`: set to True if you wish to perform correction of intensity along Z and T (Not recommended, except if for your cell/images you see a clear correlation between intensity values and Z or T).  
 `log_corr`: set to True if you wish the Z-correction to be log-based (not recommended).  
 `N_unique_spots`: Number of unique spots (=unique tracks) in your cell.  
