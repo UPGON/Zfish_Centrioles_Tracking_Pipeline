@@ -387,7 +387,12 @@ Having run [the previous script](#script9_main). You must create/choose a folder
 `path_out_movies`: path to the folder where you want to save your movies.  
 `path_out_im`: path to the folder containing the *mean_fluo_vs_time_idCell_ID* and the *Z_corr* folders.  
 `path_config`: path to the [btrack-models](./btrack_models) folder.  
-
+The following parameters need to be adapted depending on the number of spots you have in your cell. They control how many subplots are needed for plots in which the measure of each individual plot are diplayed in a separate suplots, as well as the size of each subplot. My recommandation is that if you have two spots, you put 1 subplot in width and 2 in height. If you have 4 spots or less, put 2 in width and 2 in height. For any number of spots greater than 4, I would recommend putting 3 subplots in width, and adjusting the number in height such that `Number_of_plots_in_Width * Number_of_plots_in_Heigth >= N_unique_spots`, e.g. if you have 6 spots put 3 in width and 2 in height, if you have 8 spots, put 3 in width and 3 in height and if you have 12 put 3 in width and 4 in heigth.  
+`Number_of_plots_in_Width`: Number of subplots in the width of the figure.  
+`Number_of_plots_in_Heigth`: Number of subplots in the heigth of the figure.  
+`Size_of_subplots_in_Width`: Size subplots in the width of the figure. Recommended 8 if you have less than 3 subplots in width, 16 otherwise.   
+`Size_of_subplots_in_Heigth`: Size subplots in the heigth of the figure. Recommended 6.  
+`Size_of_subplots_in_Width_2` `Size_of_subplots_in_Heigth_2` are just the same as before, except that these are settings for the plots of some features that requires more space, and thus the number of plots in each dimension is automatically determined such that there is at most 2 subplots in width.    
 
 #### How to run the script: <a name="script10_how"></a>
 You can run it in one single chunk. Before running the script, you should copy your `dict_ids_to_track_737` from [Curate_spots.py](#im_dict) and paste it to replace the `dict_ids_to_track_737` that is already present in the script.  
