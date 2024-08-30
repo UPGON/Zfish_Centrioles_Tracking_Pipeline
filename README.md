@@ -1,8 +1,8 @@
 # Centrioles tracking pipeline in single cells
 
 These python scripts were originally written to allow the tracking of centrioles/centrin foci in muscles cells of Zebrafish. They can also be used with any other 3D + t images to track centrioles or any type of big enough spot.  
-If you have 2D images, this will not work, since many places in the code are written considering there is three dimensions. However, if you know Python a bit, you can easily find such places and adapt it to work on 2D + t images.
-Alternatively, you can also take a look at [2D_version_attempt.py](./Scripts_Computer/2D_version_attempt.py), the short script attempt written for Gabriella and Zhansaya project.  
+If you have 2D images, this will not work, since many places in the code are written considering there is three dimensions. However, if you know Python a bit, you can easily find such places and adapt it to work on 2D + t images. Another solution could be to instead of using 2D (X and Y) + t images would be to use fake 3D images ( X and Y, and Z=1).  
+Alternatively, you can also take a look at [2D_version_attempt.py](./Scripts_Computer/2D_version_attempt.py), the short script attempt written for Gabriella and Zhansaya project, and use it as a starting point to do your adaptations.  
 
 \
 In case you should have any questions not addressed here about my code, you can contact me at florian.curvaia@me.com
