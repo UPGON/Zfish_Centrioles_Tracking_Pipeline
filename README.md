@@ -220,6 +220,7 @@ You should have the *volumes* folder, as well as the *Centrioles_spots_3D* and *
 
 #### Parameters of the script: <a name="script5_par"></a>
 For all the scripts that are being run on your computer, all the arguments/parameters are located inside the script, and therefore should be changed directly there.  
+`N_tp` is the number of time frames that your movie contains (here it is put to 350 because this is what I had for my experiments).
 `path_in_spots` is the path to the *Centrioles_spots_3D* folder.  
 `path_in_C1` and `path_in_C2` are both the path to the *volumes* folder.  
 `path_in_C3` is the path to the *Nuc_seg_time_track* folder.  
