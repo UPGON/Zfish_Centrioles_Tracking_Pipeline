@@ -31,6 +31,7 @@ plt.ioff()
 
 Muscle_cells=True
 
+N_tp=350
 
 path_in_spots=Path("/Volumes/users/curvaia/Images/Live/20240321_Transplants/20240321_172724_Transplants_TgCentrinEos_H2BmCherry/e2-1_FLUO/Centrioles_spots_3D")
 path_in_C3=Path("/Volumes/users/curvaia/Images/Live/20240321_Transplants/20240321_172724_Transplants_TgCentrinEos_H2BmCherry/e2-1_FLUO/To_observe_live_transplants/Tif/nuc_seg_npy/")
@@ -48,7 +49,7 @@ path_out_im="/Users/floriancurvaia/Desktop/Uni/EPFL/Gönczy/Scripts/Images/Live
 path_config=Path("/Users/floriancurvaia/Desktop/Uni/EPFL/Gönczy/Images/Live_transplants/")
 
 all_spots=[]
-for i in range(350):
+for i in range(N_tp):
     tp_spots=pd.read_csv(path_in_spots / ("3D_spots_T"+str(i).zfill(5)+".csv"))
     all_spots.append(tp_spots)
 
@@ -189,7 +190,7 @@ viewer.add_tracks(data, properties=properties, graph=graph, visible=True, colorm
 
 N_spots_tp=[]
 N_nucs_tp=[]
-for t in range(350):
+for t in range(N_tp):
     N_spots_tp.append(len(all_spots.loc[all_spots.POSITION_T==t]))
     N_nucs_tp.append(len(nuc_coords.loc[nuc_coords["T"]==t]))
     
@@ -207,7 +208,7 @@ for a, b in data[:,:2]:
         dist_spots_per_nuc_T[b]={}
     dist_spots_per_nuc_T[b][a]=[]
 
-for i in range(350):
+for i in range(N_tp):
     spots_tp=all_spots.loc[all_spots["POSITION_T"]==i]
     nuc_tp=nuc_coords.loc[nuc_coords["T"]==i]
     dist_0=distance.cdist(nuc_tp[["Z", "Y", "X"]].to_numpy(), spots_tp[["POSITION_Z", "POSITION_Y", "POSITION_X"]].to_numpy())
@@ -218,13 +219,13 @@ for i in range(350):
         dist_spots_per_nuc_T[i][j].append(dist_0[int(nuc_min_id[k]), k])
         
 
-mean_spots_per_nuc_T=[np.mean(list(N_spots_per_nuc_T[i].values())) for i in range(350)]
-mean_dist_spots_nuc_T=[np.mean([x for xs in list(dist_spots_per_nuc_T[i].values()) for x in xs]) for i in range(350)]
-all_dist_spots_nuc_T=[x for i in range(350) for xs in list(dist_spots_per_nuc_T[i].values()) for x in xs ]
-tp_all_spots=[i for i in range(350) for xs in list(dist_spots_per_nuc_T[i].values()) for x in xs]
-all_N_spots_per_nuc_T=[x for i in range(350) for x in list(N_spots_per_nuc_T[i].values()) ]
+mean_spots_per_nuc_T=[np.mean(list(N_spots_per_nuc_T[i].values())) for i in range(N_tp)]
+mean_dist_spots_nuc_T=[np.mean([x for xs in list(dist_spots_per_nuc_T[i].values()) for x in xs]) for i in range(N_tp)]
+all_dist_spots_nuc_T=[x for i in range(N_tp) for xs in list(dist_spots_per_nuc_T[i].values()) for x in xs ]
+tp_all_spots=[i for i in range(N_tp) for xs in list(dist_spots_per_nuc_T[i].values()) for x in xs]
+all_N_spots_per_nuc_T=[x for i in range(N_tp) for x in list(N_spots_per_nuc_T[i].values()) ]
 
-tp_all_nuc=[i for i in range(350) for xs in list(dist_spots_per_nuc_T[i].values())]
+tp_all_nuc=[i for i in range(N_tp) for xs in list(dist_spots_per_nuc_T[i].values())]
 
 
 nuc_id=737
@@ -238,12 +239,12 @@ dict_ids_to_track_737 = {
         (737, 415, 449, 336, 312, 96, 7) if i < 113 else
         (737, 449, 415, 336, 312, 96, 7)
     )
-    for i in range(350)
+    for i in range(N_tp)
 }
 
 dict_ids_to_track_737 = {
     i: tuple([10])
-    for i in range(350)
+    for i in range(N_tp)
 }
 
 dict_ids_to_track_737 = {
@@ -255,7 +256,7 @@ dict_ids_to_track_737 = {
         tuple([5])
         
     )
-    for i in range(350)
+    for i in range(N_tp)
 }
 
 mean_spots_per_nuc=[]
@@ -264,7 +265,7 @@ all_spots_dist_nuc=[]
 tp_all_spots_dist=[]
 
 
-for i in range(350):
+for i in range(N_tp):
     dic_N_tp=N_spots_per_nuc_T[i]
     dic_D_tp=dist_spots_per_nuc_T[i]
     repo=-1
@@ -289,12 +290,12 @@ for i in range(350):
 spots_close_nuc=[] 
 
 
-N_spots_per_single_nuc_T=np.zeros((350))
+N_spots_per_single_nuc_T=np.zeros((N_tp))
 
 dist_spots_per_single_nuc_T=[]
 tp_dist_spots_per_single_nuc=[]
 """
-for i in range(350):
+for i in range(N_tp):
     #spots_tp=spots_tzyx_nuc_df.loc[spots_tzyx_nuc_df["T"]==i]
     spots_tp=all_spots.loc[all_spots["POSITION_T"]==i]
     nuc_tp=nuc_coords.loc[nuc_coords["T"]==i]
@@ -343,7 +344,7 @@ for i in range(350):
             #dist_0=distance.cdist(nuc_tp.loc[nuc_tp.ID==j][["Z", "Y", "X"]].to_numpy(), spots_tp[["POSITION_Z", "POSITION_Y", "POSITION_X"]].to_numpy())
             #spots_ids=np.where(dist_0.flatten()<20)
 """
-for i in range(350):
+for i in range(N_tp):
     #spots_tp=spots_tzyx_nuc_df.loc[spots_tzyx_nuc_df["T"]==i]
     spots_tp=all_spots.loc[all_spots["POSITION_T"]==i]
     nuc_tp=nuc_coords.loc[nuc_coords["T"]==i]
@@ -397,8 +398,8 @@ spots_close_nuc=pd.concat(spots_close_nuc, ignore_index=True)
 spots_tzyx_nuc=spots_close_nuc[["POSITION_T","Z", "Y", "X"]].to_numpy()
 
 
-N_spots_per_single_nuc_T_smooth=np.zeros((350))
-for i in range(350):
+N_spots_per_single_nuc_T_smooth=np.zeros((N_tp))
+for i in range(N_tp):
     lower_bound=i-2
     if lower_bound<0:
         lower_bound=0
