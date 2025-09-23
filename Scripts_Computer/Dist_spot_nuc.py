@@ -31,8 +31,6 @@ from scipy import spatial
 plt.ioff()
 #stack = imread("/Volumes/users/curvaia/Images/Live/20240321_Transplants/20240321_172724_Transplants_TgCentrinEos_H2BmCherry/e2-1_FLUO/To_observe_live_transplants/e2-1_cells_of_interest_time_registered_3D.tif")
 
-N_tp=350
-
 Cell_ID=540
 
 path_in_C3=Path("//Users/floriancurvaia/Desktop/Uni/EPFL/Gönczy/Images/Live_transplants/Muscle_cells/Nuc_seg_time_track")
@@ -119,6 +117,7 @@ stack_C3 = da.map_blocks(
 
 
 stack_C1=stack_C1.astype("int16")
+N_tp=stack_C1.shape[0]
 
 
 ### Distance to nucleus part
