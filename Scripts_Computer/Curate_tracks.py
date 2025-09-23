@@ -31,7 +31,7 @@ import time
 plt.ioff()
 #stack = imread("/Volumes/users/curvaia/Images/Live/20240321_Transplants/20240321_172724_Transplants_TgCentrinEos_H2BmCherry/e2-1_FLUO/To_observe_live_transplants/e2-1_cells_of_interest_time_registered_3D.tif")
 
-
+N_tp=350
 path_in_C3=Path("/Users/floriancurvaia/Desktop/Uni/EPFL/Gönczy/Images/Live_transplants/Muscle_cells/nuc_seg_npy")
 path_in_C2=Path("/Users/floriancurvaia/Desktop/Uni/EPFL/Gönczy/Images/Live_transplants/Muscle_cells/volumes_V2")
 path_in_C1=Path("/Users/floriancurvaia/Desktop/Uni/EPFL/Gönczy/Images/Live_transplants/Muscle_cells/volumes_V2")
@@ -172,7 +172,7 @@ dict_ids_to_track_737 = {
         (737, 415, 449, 336, 312, 96, 7) if i < 113 else
         (737, 449, 415, 336, 312, 96, 7)
     )
-    for i in range(350)
+    for i in range(N_tp)
 }
 
 
@@ -192,14 +192,14 @@ dict_ids_to_track_540 = {
         tuple([6])
         
     )
-    for i in range(350)
+    for i in range(N_tp)
 }
 
 
 
 
 nuc_737_coords=[]
-for tp in range(350):
+for tp in range(N_tp):
     """
     if Cell_ID==737:
         ids_nuc_to_track=dict_ids_to_track_737[tp]
@@ -235,7 +235,7 @@ nuc_737_coords.sort_values("T", inplace=True)
 #nuc_737_coords.to_csv(path_out_im+"single_nuc_coords_id"+str(Cell_ID)+".csv")
 """
 new_nuc_coords=[]
-for tp in range(350):
+for tp in range(N_tp):
     ids_nuc_to_track=(135, 5)
     
     filt_coords=nuc_coords.loc[nuc_coords["T"]==int(tp)].copy()
@@ -253,7 +253,7 @@ new_nuc_coords=nuc_coords.copy()
 #new_nuc_coords=all_CMs.copy()
 tp_origin={}
 
-for tp in range(350):
+for tp in range(N_tp):
     #ids_nuc_to_track=dict_ids_to_track_737[tp]
     #ids_nuc_to_track=(135, 5)
     #ids_nuc_to_track=tuple([10])
@@ -291,7 +291,7 @@ Z_min_nuc=np.round(new_nuc_coords.Z.min())
 
 """
 nuc_540_new_coords=[]
-for i in range(350):
+for i in range(N_tp):
     nuc_540_id=dict_ids_to_track_540[i][0]
     nuc_df=new_nuc_coords.loc[(new_nuc_coords["T"]==i) & (new_nuc_coords["ID"]==nuc_540_id)].copy() #
     nuc_540_new_coords.append(nuc_df)
@@ -300,7 +300,7 @@ nuc_540_new_coords=pd.concat(nuc_540_new_coords, axis=0, ignore_index=True)
 nuc_540_new_coords.sort_values("T", inplace=True)
 
 nuc_540_dist=[]
-for i in range(1, 350):
+for i in range(1, N_tp):
     nuc_540_id=dict_ids_to_track_540[i][0]
     nuc_tp=nuc_540_new_coords.loc[nuc_540_new_coords["T"]==i, ["Z", "Y", "X"]].copy().to_numpy() #
     nuc_m1=nuc_540_new_coords.loc[nuc_540_new_coords["T"]==i-1, ["Z", "Y", "X"]].copy().to_numpy() #
@@ -346,7 +346,7 @@ with btrack.BayesianTracker() as tracker:
   
 
 new_nuc_track_coords=pd.DataFrame(data_new, columns=["ID", "T", "Z", "Y", "X"])
-for tp in range(350):
+for tp in range(N_tp):
     
     origin=tp_origin[tp]
     
@@ -357,7 +357,7 @@ data_new=new_nuc_track_coords.to_numpy()
 
 
 
-for tp in range(350):
+for tp in range(N_tp):
     
     origin=tp_origin[tp]
     spots_tzyx_nuc_df_to_track.loc[spots_tzyx_nuc_df_to_track["T"]==tp, ["Z", "Y", "X"]] = spots_tzyx_nuc_df_to_track.loc[spots_tzyx_nuc_df_to_track["T"]==tp, ["Z", "Y", "X"]].to_numpy() - origin.flatten()[2:] #[["Z", "Y", "X"]] 
@@ -415,7 +415,7 @@ with btrack.BayesianTracker() as tracker:
 
 spots_track_coords=pd.DataFrame(data_spots, columns=["ID", "T", "Z", "Y", "X"])
 
-for tp in range(350):
+for tp in range(N_tp):
     
     origin=tp_origin[tp]
     
