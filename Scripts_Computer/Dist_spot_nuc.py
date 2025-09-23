@@ -31,6 +31,8 @@ from scipy import spatial
 plt.ioff()
 #stack = imread("/Volumes/users/curvaia/Images/Live/20240321_Transplants/20240321_172724_Transplants_TgCentrinEos_H2BmCherry/e2-1_FLUO/To_observe_live_transplants/e2-1_cells_of_interest_time_registered_3D.tif")
 
+N_tp=350
+
 Cell_ID=540
 
 path_in_C3=Path("//Users/floriancurvaia/Desktop/Uni/EPFL/Gönczy/Images/Live_transplants/Muscle_cells/Nuc_seg_time_track")
@@ -151,7 +153,7 @@ with open(path_out_im+'dict_spots_per_nuc_per_tp_id540.pkl', 'wb+') as f:
     pickle.dump(dict_spot_to_nuc_737, f) 
 """    
 
-for i in range(350):
+for i in range(N_tp):
     spots_737_tp=spots_track_coords_737.loc[spots_track_coords_737["T"]==i]
     nuc_seg_tp=stack_C3[i].compute()
     
@@ -195,14 +197,14 @@ for col in columns_to_fill:
 ### Intensity Value part
 dict_spots_values_per_tp_737={}
 
-for i in range(350):
+for i in range(N_tp):
     dict_spots_values_per_tp_737[i]={}
     
 d, h, w = stack_C1[0].shape #100, 100, 10
 depthnums, colnums, rownums = np.meshgrid(range(d), range(h), range(w), indexing='ij')
 r=2.5 #Pseudo radius of the spot
 
-for i in range(350):
+for i in range(N_tp):
     spots_737_tp=spots_track_coords_737.loc[spots_track_coords_737["T"]==i]
     centrin=stack_C1[i].compute()
     zmax, ymax, xmax=centrin.shape
