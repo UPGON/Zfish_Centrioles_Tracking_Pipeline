@@ -13,6 +13,7 @@ import pandas as pd
 from scipy import spatial
 import pickle 
 
+N_tp=350
 
 Cell_ID=540
 path_files=Path("/Users/floriancurvaia/Desktop/Uni/EPFL/Gönczy/Scripts/Images/Live_transplants/Smoothing")
@@ -91,7 +92,7 @@ new_nuc_track_coords=pd.read_csv(path_files/"new_all_nuc_coords_tracks_id"+str(C
 new_nuc_track_coords.drop("Unnamed: 0", axis=1, inplace=True)
 Cell_CM_tp_dict={}
 nucs_ids_per_tp={}
-for i in range(350):
+for i in range(N_tp):
     Cell_CM_tp_arr=np.zeros((N_tracks, 3))
     Cell_CM_tp_arr[:]=np.nan
     Cell_CM_tp_dict[i]=Cell_CM_tp_arr
@@ -109,12 +110,12 @@ for track_ID, tp_dict in dict_all_tracks.items():
             Cell_CM_tp_dict[tp][track_ID-1]=nuc_coords
             nucs_ids_per_tp[tp].append(int(or_ID))
 
-Cell_CM=np.zeros((350, 3))
-for i in range(350):
+Cell_CM=np.zeros((N_tp, 3))
+for i in range(N_tp):
     Cell_CM_tp_arr=Cell_CM_tp_dict[i]
     Cell_CM[i]=np.nanmean(Cell_CM_tp_arr, axis=0)
 
-for i in range(350):
+for i in range(N_tp):
     Cell_CM_tp=Cell_CM[i]
     fake_tp_m1=i
     fake_tp_p1=i
