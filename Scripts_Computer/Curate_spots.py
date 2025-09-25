@@ -20,7 +20,7 @@ import pandas as pd
 from scipy.spatial import distance
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
-import mpl_scatter_density # adds projection='scatter_density'
+#import mpl_scatter_density # adds projection='scatter_density'
 from matplotlib import cm
 from matplotlib.colors import Normalize 
 from scipy.interpolate import interpn
