@@ -135,34 +135,39 @@ xlim=stack_C1.shape[-1]
 ylim=stack_C1.shape[-2]
 zlim=stack_C1.shape[1]
 
-with btrack.BayesianTracker() as tracker:
-
-  # configure the tracker using a config file
-  tracker.configure(path_config /'cell_config.json')
-
-  # append the objects to be tracked
-  tracker.append(objs)
-
-  # set the volume (Z axis volume limits default to [-1e5, 1e5] for 2D data)
-  #tracker.volume = ((0, 832), (0, 911), (0, 67))
-  tracker.volume = ((0, xlim), (0, ylim), (0, zlim))
-
-  # track them (in interactive mode)
-  tracker.track_interactive(step_size=10)
-
-  # generate hypotheses and run the global optimizer
-  tracker.optimize()
-
-  # store the data in an HDF5 file
-  #tracker.export( path_in_spots / 'tracks.h5', obj_type='obj_type_1')
-
-  # get the tracks as a python list
-  tracks = tracker.tracks
-
-  # optional: get the data in a format for napari
-  data, properties, graph = tracker.to_napari()
-  
-  #tracker.export('/Users/floriancurvaia/Desktop/Uni/EPFL/Gönczy/Cluster/btrack_non_muscle_cells.h5', obj_type='obj_type_1')
+from_scratch=False
+if from_scratch:
+    with btrack.BayesianTracker() as tracker:
+    
+      # configure the tracker using a config file
+      tracker.configure(path_config /'cell_config.json')
+    
+      # append the objects to be tracked
+      tracker.append(objs)
+    
+      # set the volume (Z axis volume limits default to [-1e5, 1e5] for 2D data)
+      tracker.volume = ((0, xlim), (0, ylim), (0, zlim))
+    
+      # track them (in interactive mode)
+      tracker.track_interactive(step_size=10)
+    
+      # generate hypotheses and run the global optimizer
+      #tracker.optimize()
+    
+      # store the data in an HDF5 file
+      #tracker.export( path_in_spots / 'tracks.h5', obj_type='obj_type_1')
+      
+      # get the tracks as a python list
+      tracks = tracker.tracks
+      
+      # optional: get the data in a format for napari
+      data, properties, graph = tracker.to_napari()
+      
+      #tracker.export('/Users/floriancurvaia/Desktop/Uni/EPFL/Gönczy/Cluster/btrack_non_muscle_cells.h5', obj_type='obj_type_1')
+else:
+    data=np.load(path_in_spots.parent / "nuc_coords_Muscles_V2.npy")
+    properties={}
+    graph={}
 nuc_coords=pd.DataFrame(data, columns=["ID", "T", "Z", "Y", "X"])
 nuc_coords.to_csv(path_out_im+"nuc_coords_id"+str(Cell_ID)+".csv")
 
