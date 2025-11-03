@@ -421,7 +421,13 @@ for i in range(N_tp):
 
 
 
+Recover_data=False
 
+if Recover_data is True:
+    Cell_ID=119
+    data_spots=pd.read_csv(path_out_im + "cur_spots_t349_id"+str(Cell_ID)+".csv")[["ID", "T", "Z", "Y", "X"]].to_numpy()
+    new_scale=(1, 0.75, 0.173, 0.173)
+    spots_tzyx_nuc=data_spots[:, 1:]/new_scale
 
 ###To be run even if you skip the rest of part 2
 points_layer = viewer.add_points(spots_tzyx_nuc, ndim=4, size=200, scale=scale, blending='additive', opacity=0.3) #ndim=4
