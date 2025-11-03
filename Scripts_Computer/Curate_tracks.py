@@ -54,7 +54,8 @@ spots_tzyx_nuc_df.drop("Unnamed: 0", axis=1, inplace=True)
 spots_tzyx_nuc=spots_tzyx_nuc_df[["T", "Z", "Y", "X"]].to_numpy()
 spots_nuc_npy_coords=spots_tzyx_nuc_df[["T","Z", "Y", "X"]].astype(int)
 spots_tzyx_nuc_df_to_track=spots_tzyx_nuc_df.copy()
-spots_tzyx_nuc_df_to_track[["Z", "Y", "X"]]=spots_tzyx_nuc_df_to_track[["Z", "Y", "X"]]*scale
+#If you get issues with points not showing up where they should, try uncommenting *scale
+spots_tzyx_nuc_df_to_track[["Z", "Y", "X"]]=spots_tzyx_nuc_df_to_track[["Z", "Y", "X"]]#*scale
 
 #corner_spots_tzyx_nuc_df=pd.read_csv("/Users/floriancurvaia/Desktop/Uni/EPFL/Gönczy/Scripts/Images/Live_transplants/Smoothing/cur_corner_spots_t126-349_id737.csv")
 #Corner_spots=corner_spots_tzyx_nuc_df[["T","Z", "Y", "X"]].to_numpy()
@@ -472,7 +473,8 @@ viewer.add_tracks(data, properties=properties, graph=graph, visible=True, colorm
 
 viewer.add_tracks(data_spots, properties=properties_spots, graph=graph_spots, visible=True, colormap="turbo", blending="additive") # scale=scale
 
-points_layer = viewer.add_points(spots_tzyx_nuc, ndim=4, size=200, scale=scale, blending='additive', opacity=0.3) #ndim=4
+#If you get issues with points not showing up where they should, try inserting: , scale=scale in the function
+points_layer = viewer.add_points(spots_tzyx_nuc, ndim=4, size=200, blending='additive', opacity=0.3) #ndim=4 #, scale=scale
 
 #points_layer = viewer.add_points(Corner_spots, ndim=4, size=200, scale=scale, blending='additive', opacity=0.3, face_color="yellow") #ndim=4
 #mask=points_layer.to_masks(stack_C1.shape)
