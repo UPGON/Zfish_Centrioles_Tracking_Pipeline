@@ -28,7 +28,7 @@ for i in range(1, N_tracks+1):
 last_tp_tracks=[8, 36, 49, 54, 55, 48, 42, 47, 39, 23, 33, 26, 22]
 
 test=[]
-with open(path_files / "Spots_time_ID_id"+str(Cell_ID)+"_toDict.txt" ) as f:
+with open(path_files / ("Spots_time_ID_id"+str(Cell_ID)+"_toDict.txt") ) as f:
     lines=f.readlines()
     tp_ID=None
     upper_tp=None
@@ -84,8 +84,8 @@ with open(path_files / "Spots_time_ID_id"+str(Cell_ID)+"_toDict.txt" ) as f:
                 
         #test.append(line_start)
 
-data_spots=np.load(path_files / "spots_coords_particle_track_id"+str(Cell_ID)+".npy")
-spots_tzyx_nuc_df=pd.read_csv(path_files / "cur_spots_t349_id"+str(Cell_ID)+".csv")
+data_spots=np.load(path_files / ("spots_coords_particle_track_id"+str(Cell_ID)+".npy"))
+spots_tzyx_nuc_df=pd.read_csv(path_files / ("cur_spots_t349_id"+str(Cell_ID)+".csv"))
 spots_track_coords=pd.DataFrame(data_spots, columns=["ID", "T", "Z", "Y", "X"])
 spots_track_coords.ID=spots_track_coords.ID+N_tracks
 
@@ -107,7 +107,7 @@ for track_ID, tp_dict in dict_all_tracks.items():
 
 cur_spots=pd.concat(all_spots, axis=0, ignore_index=True)
 cur_spots.sort_values(["T", "ID"], inplace=True)
-cur_spots.to_csv(path_files / "all_cur_spots_id"+str(Cell_ID)+".csv")
+cur_spots.to_csv(path_files / ("all_cur_spots_id"+str(Cell_ID)+".csv"))
 
 all_spots=[]
 for track_ID, tp_dict in dict_all_tracks_w_merge.items():
@@ -121,5 +121,5 @@ for track_ID, tp_dict in dict_all_tracks_w_merge.items():
 
 cur_spots=pd.concat(all_spots, axis=0, ignore_index=True)
 cur_spots.sort_values(["T", "ID"], inplace=True)
-cur_spots.to_csv(path_files / "all_cur_spots_id"+str(Cell_ID)+"_w_Merge.csv")
+cur_spots.to_csv(path_files / ("all_cur_spots_id"+str(Cell_ID)+"_w_Merge.csv"))
 
