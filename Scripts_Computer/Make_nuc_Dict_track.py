@@ -30,7 +30,7 @@ for i in range(1, N_tracks+1):
 
 
 
-with open(path_files / "Nuc_time_ID_id"+str(Cell_ID)+"_toDict.txt" ) as f:
+with open(path_files / ("Nuc_time_ID_id"+str(Cell_ID)+"_toDict.txt") ) as f:
     lines=f.readlines()
     tp_ID=None
     upper_tp=None
@@ -86,9 +86,9 @@ with open(path_files / "Nuc_time_ID_id"+str(Cell_ID)+"_toDict.txt" ) as f:
         #test.append(line_start)
 
 
-nuc_coords_or_df=pd.read_csv(path_files/"nuc_coords_id"+str(Cell_ID)+".csv")
+nuc_coords_or_df=pd.read_csv(path_files/("nuc_coords_id"+str(Cell_ID)+".csv"))
 nuc_coords_or_df.drop("Unnamed: 0", axis=1, inplace=True)
-new_nuc_track_coords=pd.read_csv(path_files/"new_all_nuc_coords_tracks_id"+str(Cell_ID)+".csv")
+new_nuc_track_coords=pd.read_csv(path_files/("new_all_nuc_coords_tracks_id"+str(Cell_ID)+".csv"))
 new_nuc_track_coords.drop("Unnamed: 0", axis=1, inplace=True)
 Cell_CM_tp_dict={}
 nucs_ids_per_tp={}
@@ -133,12 +133,12 @@ for i in range(N_tp):
             
             
         
-np.save(path_files / 'Cell_CM_tp_id'+str(Cell_ID)+'.npy', Cell_CM)
+np.save(path_files / ('Cell_CM_tp_id'+str(Cell_ID)+'.npy'), Cell_CM)
 
-with open(path_files/'Nuc_ID_tp_id'+str(Cell_ID)+'.pkl', 'wb+') as f:
+with open(path_files/('Nuc_ID_tp_id'+str(Cell_ID)+'.pkl'), 'wb+') as f:
     pickle.dump(dict_all_tracks, f)
 
-with open(path_files/'All_nuc_IDs_tp_id'+str(Cell_ID)+'.pkl', 'wb+') as f:
+with open(path_files/('All_nuc_IDs_tp_id'+str(Cell_ID)+'.pkl'), 'wb+') as f:
     pickle.dump(nucs_ids_per_tp, f)
 
 """
