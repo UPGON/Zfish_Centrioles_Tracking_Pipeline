@@ -33,10 +33,11 @@ path_in=Path(args.fld)
 
 fn=path_in / ("T"+tp+"_nuc_seg.npy")
 
-path_out=Path("/scratch/curvaia/Transplants_e1_2/Muscles_part2/Nuc_seg_time_track/")
+path_out=Path(path_in.parent/"Nuc_seg_time_track/")
+
 
 nuc_seg_tp=np.load(fn)
-data=np.load("/scratch/curvaia/Transplants_e1_2/Muscles_part2/nuc_coords_Muscles_V2.npy")
+data=np.load(path_in.parent/"nuc_coords_Muscles_V2.npy")
 
 scale=(0.75, 0.173, 0.173)
 
