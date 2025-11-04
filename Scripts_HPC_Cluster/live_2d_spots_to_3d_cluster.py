@@ -22,16 +22,17 @@ CLI.add_argument(
   #nargs=1,  # 0 or more values expected => creates a list
   type=str,  # default if nothing is provided
 )
-
+CLI.add_argument("spfn", type=str)
 args = CLI.parse_args()
 
 tp=int(args.idx)
 path_in=Path(args.fld)
+spots_filename=args.spfn
 
 fn=path_in / ("ome-tiff.companion-track-crop--C00--T"+str(tp).zfill(5)+".tif")
 
 path_in=fn.parent
-path_in_spots = Path("/scratch/curvaia/Transplants_e1_2/Muscles_part2/e2-1_muscles2_max_proj_allspots_d1_4_Q5_8.csv")
+path_in_spots = Path(path_in.parent/spots_filename)
 all_spots=pd.read_csv(path_in_spots)
 spots_tp=all_spots.loc[all_spots["POSITION_T"]==tp]
 N_time_points=1
