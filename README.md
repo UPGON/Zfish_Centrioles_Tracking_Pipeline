@@ -200,9 +200,9 @@ If your pixel size is something else than 0.75, 0.173, 0.173 in respectively Z, 
 
 #### How to run the script: <a name="script4_how"></a>
 Use the following command:  
-`python run_live_2d_spots_to_3d_cluster.py /path_to_volumes_folder`
-where `/path_to_volumes_folder` is the path to the folder *volumes* that you uploaded. For example for me it was:  
-`/scratch/curvaia/Transplants_e1_2/Muscles_part2/volumes`
+`python run_live_2d_spots_to_3d_cluster.py /path_to_volumes_folder spots_filename`
+where `/path_to_volumes_folder` is the path to the folder *volumes* that you uploaded and `spots_filename` is the name of the csv file containing spots location. For example for me it was:  
+`/scratch/curvaia/Transplants_e1_2/Muscles_part2/volumes` and `e2-1_muscles2_max_proj_allspots.csv`.
 
 #### Output: <a name="script4_out"></a>
 The script will output in the *Centrioles_spots_3D* folder one csv file for each time point with the coordinates of the spots in 3D. This folder should be downloaded to your computer or to your group share, since it will be needed for the scripts that will be run from your computer.  
