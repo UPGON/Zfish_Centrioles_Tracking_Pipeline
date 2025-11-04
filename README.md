@@ -195,9 +195,7 @@ The script will output nuclei segmentation across all time points in numpy forma
 You should have installed the conda environment *btrack-env*, activated it by running the `conda activate btrack-env` command. You should have created a folder named *Centrioles_spots_3D* next to the *volumes* and *npy_seg* folders. You should have uploaded the csv file containing the 2d location of the spots.
 
 #### Parameters of the script: <a name="script4_par"></a>
-There is only one argument for the script, which is the path to the volumes folder. There is one thing that needs to be changed in the script for any new experiment. Open [live_2d_spots_to_3d_cluster.py](./Scripts_HPC_Cluster/live_2d_spots_to_3d_cluster.py) and look for the following line: 
-`path_in_spots = Path("/scratch/curvaia/Transplants_e1_2/Muscles_part2/e2-1_muscles2_max_proj_allspots_d1_4_Q5_8.csv")`  
-You should replace the string inside the *Path()* function by the path to the csv file containing the 2d location of spots.
+There is only two arguments for the script, which is the path to the volumes folder and the name of the spots csv file coming from FiJi.
 If your pixel size is something else than 0.75, 0.173, 0.173 in respectively Z, Y and X, you have to go in the [live_2d_spots_to_3d_cluster.py](./Scripts_HPC_Cluster/live_2d_spots_to_3d_cluster.py) file and locate the following line `scale=(0.75, 0.173, 0.173)` and change the values by your pixel size in Z, Y and X.
 
 #### How to run the script: <a name="script4_how"></a>
