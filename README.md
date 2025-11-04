@@ -149,7 +149,7 @@ where `/path_to_volumes_folder` is the path to the folder *volumes* that you upl
 `/scratch/curvaia/Transplants_e1_2/Muscles_part2/volumes` 
 
 #### Output: <a name="script1_out"></a>
-The script will output nuclei segmentation across all time points in two formats: in tif file in the */tif_seg* folder and in numpy array in the */npy_seg* folder. The *npy_seg* folder should be downloaded to your computer or to your group share, since it will be needed for the scripts that will be run from your computer. However, downloading large data from the hpc-cluster can take substantial amount of time, so you can do so when you will be done with all the scripts that need to run on the cluster so you don’t keep the files occupied.  
+The script will output nuclei segmentation across all time points in two formats: in tif file in the */tif_seg* folder and in numpy array in the */npy_seg* folder. There is no need to download *npy_seg* folder to your computer or to your group share, since it will only be the output folder from the third script that will be needed for the scripts that will be run from your computer. However, downloading large data from the hpc-cluster can take substantial amount of time, so you can do so when you will be done with all the scripts that need to run on the cluster so you don’t keep the files occupied.  
 &nbsp;
 &nbsp;
 
