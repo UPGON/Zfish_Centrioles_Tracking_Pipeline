@@ -133,9 +133,9 @@ with btrack.BayesianTracker() as tracker:
   # optional: get the data in a format for napari
   data, properties, graph = tracker.to_napari()
   
-  tracker.export('/scratch/curvaia/Transplants_e1_2/Cells_of_interest_3D/btrack_cells_Muscle_v2.h5', obj_type='obj_type_1')
+  tracker.export(path_out/'btrack_cells_Muscle_v2.h5', obj_type='obj_type_1')
 
-np.save("/scratch/curvaia/Transplants_e1_2/Muscles_part2/nuc_coords_Muscles_V2.npy", data)
+np.save(path_out/"nuc_coords_Muscles_V2.npy", data)
   
 """
 np.min((data[:,2]/0.75).astype(int))
