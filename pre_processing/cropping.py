@@ -36,17 +36,24 @@ def crop_image(image, x_start, y_start, x_end, y_end):
     Returns: 
         numpy.ndarray: The cropped image.
     """
+    print(f"Image shpar: {image.shape}")
     img_height, img_width = image.shape[2:4]
-    assert(0 <= x_start <= img_width, "x_start should be between the image size limits")
-    assert(x_start < x_end, "x_start should be smaller than x_end")
-    assert(0 <= y_start <= img_height, "y_start should be between the image size limits")
-    assert(y_start < y_end, "y_start should be smaller than y_end")
+
+    if not (0 <= x_start < img_width):
+        raise ValueError(f"x_start ({x_start}) must be >= 0 and < image width ({img_width})")
+    if not (x_start < x_end):
+        raise ValueError(f"x_start ({x_start}) must be < x_end ({x_end})")
+    if not (0 <= y_start < img_height):
+        raise ValueError(f"y_start ({y_start}) must be >= 0 and < image height ({img_height})")
+    if not (y_start < y_end):
+        raise ValueError(f"y_start ({y_start}) must be < y_end ({y_end})")
+  
 
     crop_img = image[:][:][y_start:y_end, x_start:x_end][:]
     return crop_img
 
 def save_image(image, output_path):
-    """ Saves the given image at the provided path.
+    """ Saves the givenconda image at the provided path.
 
     Args:
         image (numpy.ndarray): The image to be saved.

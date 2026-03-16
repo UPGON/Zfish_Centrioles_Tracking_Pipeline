@@ -11,6 +11,7 @@ class OMEROConnection:
         self.conn = None
         # track whether the connection has been explicitly closed
         self._closed = True
+        self.current_image = None
 
     def __del__(self):
         # object is being garbage collected; ensure connection closed
@@ -29,6 +30,30 @@ class OMEROConnection:
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.disconnect()
+
+    def __project_exists__(self, project_id):
+        try:
+            project = self.conn.getObject("Project", int(project_id))
+            return project is not None
+        except (ValueError, TypeError):
+            # Invalid ID format
+            return False
+        
+    def __dataset_exists__(self, dataset_id):
+        try:
+            dataset = self.conn.getObject("Dataset", int(dataset_id))
+            return dataset is not None
+        except (ValueError, TypeError):
+            # Invalid ID format
+            return False
+        
+    def __images_exists__(self, image_id):
+        try:
+            image = self.conn.getObject("Image", int(image_id))
+            return image is not None
+        except (ValueError, TypeError):
+            # Invalid ID format
+            return False
 
     def connect(self):
         username=str(input("Type Your Username:\n"))
@@ -62,20 +87,26 @@ class OMEROConnection:
             project_names.append(project.getName())
 
     def __show_datasets__(self, project_id):
-        datasets = self.conn.getObjects("Dataset", opts={'project': project_id})
-        dataset_names = []
-        for dataset in datasets:
-            indent = " " * 5
-            print(f"{indent}|--- {str(dataset.getId())} : {str(dataset.getName())}")
-            dataset_names.append(dataset.getName())
+        if not self.__project_exists__(project_id):
+            print(f"Error: Project with ID {project_id} does not exist or is not accessible.")
+        else:
+            datasets = self.conn.getObjects("Dataset", opts={'project': project_id})
+            dataset_names = []
+            for dataset in datasets:
+                indent = " " * 5
+                print(f"{indent}|--- {str(dataset.getId())} : {str(dataset.getName())}")
+                dataset_names.append(dataset.getName())
 
     def __show_images__(self, dataset_id):
-        images = self.conn.getObjects("Image", opts={'dataset': dataset_id})
-        image_names = []
-        for image in images:
-            indent = " " * 10
-            print(f"{indent}|--- {str(image.getId())} : {str(image.getName())}")
-            image_names.append(image.getName())
+        if not self.__dataset_exists__(dataset_id):
+            print(f"Error: Dataset with ID {dataset_id} does not exist or is not accessible.")
+        else:
+            images = self.conn.getObjects("Image", opts={'dataset': dataset_id})
+            image_names = []
+            for image in images:
+                indent = " " * 10
+                print(f"{indent}|--- {str(image.getId())} : {str(image.getName())}")
+                image_names.append(image.getName())
     
     def show(self):
         self.__show_projects__()
@@ -84,28 +115,65 @@ class OMEROConnection:
         dataset_id = str(input("Type the id of the dataset you want to access:\n"))
         self.__show_images__(dataset_id)
 
-    def get_image(self):
-        omero_image_id=str(input("Type image id to open: \n"))
-        img_omero_obj, img_nparray = ezomero.get_image(self.conn, int(omero_image_id))
-        return img_nparray
-    
     def get_dataset(self):
         dataset_id = str(input("Type the id of the dataset to open:\n"))
-        images_obj = self.conn.getObjects("Image", opts={'dataset': dataset_id})
         img_nparray_list = []
-        for image_obj in images_obj:
-            img_omero_obj, img_nparray = ezomero.get_image(self.conn, image_obj.getId())
-            img_nparray_list.append(img_nparray)
-        return img_nparray_list
+        if not self.__dataset_exists__(dataset_id):
+            print(f"Error: Dataset with ID {dataset_id} does not exist or is not accessible.")
+            return img_nparray_list
+        else:
+            images_obj = self.conn.getObjects("Image", opts={'dataset': dataset_id})
+            for image_obj in images_obj:
+                img_omero_obj, img_nparray = ezomero.get_image(self.conn, image_obj.getId())
+                img_nparray_list.append(img_nparray)
+            return img_nparray_list
+
+    def get_image(self):
+        image_id=str(input("Type image id to open: \n"))
+        if not self.__images_exists__(image_id):
+            print(f"Error: Image with ID {image_id} does not exist or is not accessible.")
+            return []
+        else:
+            img_omero_obj, img_nparray = ezomero.get_image(self.conn, int(image_id))
+            return img_nparray
     
     def run(self):
         self.connect()
-        command = str(input)
+        while True:
+            command = input("Enter command (or 'quit' to exit): ").strip()
+            if command.lower() == 'quit':
+                break
+            parts = command.split()
+            if not parts:
+                continue
+            instruction = parts[0].lower()
+            match instruction:
+                case "show":
+                    if(parts) == 1:
+                        self.show()  # show all projects
+                    elif len(parts) == 3:
+                        [type, id] = parts[1:]
+                        match type.upper():
+                            case "P":
+                                self.__show_datasets__(id)
+                            case "D":
+                                self.__show_images__(id)
+                    else:
+                        print("Usage: show [P <project_id>] or show D <dataset_id>")
+                case "open":
+                    if len(parts) == 3: 
+                        [type, id] = parts[1:]
+                        match type.upper():
+                            case "D":
+                                dataset = self.get_dataset(id)
+                            case "I":
+                                img = self.get_image(id)
+                    else: 
+                        print("Usage: open I <image_id> or open D <dataset_id>")
+        self.disconnect()
 
-
-            
+      
 if __name__ == "__main__":
     conn = OMEROConnection()
-    conn.connect()
     conn.show()
     conn.disconnect()
