@@ -31,7 +31,7 @@ class OMEROConnection:
     def __exit__(self, exc_type, exc_value, traceback):
         self.disconnect()
 
-    def __project_exists__(self, project_id):
+    def _project_exists(self, project_id):
         try:
             project = self.conn.getObject("Project", int(project_id))
             return project is not None
@@ -39,7 +39,7 @@ class OMEROConnection:
             # Invalid ID format
             return False
         
-    def __dataset_exists__(self, dataset_id):
+    def _dataset_exists(self, dataset_id):
         try:
             dataset = self.conn.getObject("Dataset", int(dataset_id))
             return dataset is not None
@@ -47,7 +47,7 @@ class OMEROConnection:
             # Invalid ID format
             return False
         
-    def __images_exists__(self, image_id):
+    def _images_exists(self, image_id):
         try:
             image = self.conn.getObject("Image", int(image_id))
             return image is not None
@@ -78,7 +78,7 @@ class OMEROConnection:
             print("(disconnect called but connection already closed)")
 
 
-    def __show_projects__(self):
+    def _show_projects(self):
         print("List of available data in your session \n[Id: Name]")
         projects = self.conn.getObjects("Project", opts={'owner': self.conn.getUser().getId()})
         project_names = []
@@ -86,7 +86,7 @@ class OMEROConnection:
             print(str(project.getId())+" : "+str(project.getName()))
             project_names.append(project.getName())
 
-    def __show_datasets__(self, project_id):
+    def _show_datasets(self, project_id):
         if not self.__project_exists__(project_id):
             print(f"Error: Project with ID {project_id} does not exist or is not accessible.")
         else:
@@ -97,7 +97,7 @@ class OMEROConnection:
                 print(f"{indent}|--- {str(dataset.getId())} : {str(dataset.getName())}")
                 dataset_names.append(dataset.getName())
 
-    def __show_images__(self, dataset_id):
+    def _show_images(self, dataset_id):
         if not self.__dataset_exists__(dataset_id):
             print(f"Error: Dataset with ID {dataset_id} does not exist or is not accessible.")
         else:
