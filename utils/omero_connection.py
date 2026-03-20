@@ -1,13 +1,10 @@
 import ezomero
 import getpass
-import os
-
-HOST = "omero-server.epfl.ch"
-PORT = 4064
-
 class OMEROConnection:
     def __init__(self):
         super().__init__()
+        self.__host = "omero-server.epfl.ch"
+        self.__port = 4064
         self.conn = None
         # track whether the connection has been explicitly closed
         self._closed = True
@@ -31,7 +28,7 @@ class OMEROConnection:
     def __exit__(self, exc_type, exc_value, traceback):
         self.disconnect()
 
-    def _project_exists(self, project_id):
+    def __project_exists(self, project_id):
         try:
             project = self.conn.getObject("Project", int(project_id))
             return project is not None
@@ -39,7 +36,7 @@ class OMEROConnection:
             # Invalid ID format
             return False
         
-    def _dataset_exists(self, dataset_id):
+    def __dataset_exists(self, dataset_id):
         try:
             dataset = self.conn.getObject("Dataset", int(dataset_id))
             return dataset is not None
@@ -47,7 +44,7 @@ class OMEROConnection:
             # Invalid ID format
             return False
         
-    def _images_exists(self, image_id):
+    def __images_exists(self, image_id):
         try:
             image = self.conn.getObject("Image", int(image_id))
             return image is not None
@@ -55,30 +52,7 @@ class OMEROConnection:
             # Invalid ID format
             return False
 
-    def connect(self):
-        username=str(input("Type Your Username:\n"))
-        password=getpass.getpass()
-
-        self.conn = ezomero.connect(user=username, password=password, group="",
-                            host=HOST, port=PORT, secure=True)
-
-        if self.conn is not None and self.conn.isConnected():
-            print(f"Connected to {HOST}")
-            self._closed = False
-        else:
-            print("ERROR: Not able to connect to OMERO server. Please check your credentials, group and hostname")
-
-    def disconnect(self):
-        if self.conn is not None and self.conn.isConnected():
-            self.conn.close()
-            self._closed = True
-            print(f"Disconnect from {HOST}")
-        else:
-            # silently ignore repeated disconnects, but log for debugging
-            print("(disconnect called but connection already closed)")
-
-
-    def _show_projects(self):
+    def __show_projects(self):
         print("List of available data in your session \n[Id: Name]")
         projects = self.conn.getObjects("Project", opts={'owner': self.conn.getUser().getId()})
         project_names = []
@@ -86,8 +60,8 @@ class OMEROConnection:
             print(str(project.getId())+" : "+str(project.getName()))
             project_names.append(project.getName())
 
-    def _show_datasets(self, project_id):
-        if not self.__project_exists__(project_id):
+    def __show_datasets(self, project_id):
+        if not self.__project_exists(project_id):
             print(f"Error: Project with ID {project_id} does not exist or is not accessible.")
         else:
             datasets = self.conn.getObjects("Dataset", opts={'project': project_id})
@@ -97,8 +71,8 @@ class OMEROConnection:
                 print(f"{indent}|--- {str(dataset.getId())} : {str(dataset.getName())}")
                 dataset_names.append(dataset.getName())
 
-    def _show_images(self, dataset_id):
-        if not self.__dataset_exists__(dataset_id):
+    def __show_images(self, dataset_id):
+        if not self.__dataset_exists(dataset_id):
             print(f"Error: Dataset with ID {dataset_id} does not exist or is not accessible.")
         else:
             images = self.conn.getObjects("Image", opts={'dataset': dataset_id})
@@ -109,33 +83,56 @@ class OMEROConnection:
                 image_names.append(image.getName())
     
     def show(self):
-        self.__show_projects__()
+        self.__show_projects()
         project_id = str(input("Type the id of the project you want to access:\n"))
-        self.__show_datasets__(project_id)
+        self.__show_datasets(project_id)
         dataset_id = str(input("Type the id of the dataset you want to access:\n"))
-        self.__show_images__(dataset_id)
+        self.__show_images(dataset_id)
 
     def get_dataset(self):
         dataset_id = str(input("Type the id of the dataset to open:\n"))
         img_nparray_list = []
-        if not self.__dataset_exists__(dataset_id):
+        if not self.__dataset_exists(dataset_id):
             print(f"Error: Dataset with ID {dataset_id} does not exist or is not accessible.")
             return img_nparray_list
         else:
             images_obj = self.conn.getObjects("Image", opts={'dataset': dataset_id})
             for image_obj in images_obj:
-                img_omero_obj, img_nparray = ezomero.get_image(self.conn, image_obj.getId())
+                _, img_nparray = ezomero.get_image(self.conn, image_obj.getId())
                 img_nparray_list.append(img_nparray)
             return img_nparray_list
 
     def get_image(self):
         image_id=str(input("Type image id to open: \n"))
-        if not self.__images_exists__(image_id):
+        if not self.__images_exists(image_id):
             print(f"Error: Image with ID {image_id} does not exist or is not accessible.")
             return []
         else:
-            img_omero_obj, img_nparray = ezomero.get_image(self.conn, int(image_id))
+            _, img_nparray = ezomero.get_image(self.conn, int(image_id))
             return img_nparray
+        
+    def connect(self):
+        username=str(input("Type Your Username:\n"))
+        password=getpass.getpass()
+
+        self.conn = ezomero.connect(user=username, password=password, group="",
+                            host=self.__host, port=self.__port, secure=True)
+
+        if self.conn is not None and self.conn.isConnected():
+            print(f"Connected to {self.__host}")
+            self._closed = False
+        else:
+            print("ERROR: Not able to connect to OMERO server. Please check your credentials, group and hostname")
+
+    def disconnect(self):
+        if self.conn is not None and self.conn.isConnected():
+            self.conn.close()
+            self._closed = True
+            print(f"Disconnect from {self.__host}")
+        else:
+            # silently ignore repeated disconnects, but log for debugging
+            print("(disconnect called but connection already closed)")
+
     
     def run(self):
         self.connect()

@@ -113,29 +113,12 @@ def cropping(input_path, output_path, x_start, y_start, x_end, y_end):
     print(f"Operation time: {time.time() - start:.6f}s")
 
 if __name__ == "__main__":
-    """ Main function to crop an image or a set of images in a directory based on provided command-line arguments.
-
-    Usage:
-        python cropping.py --input_path <path_to_image_or_directory> --output_path <path_to_output_directory> --x_start <x_start> --y_start <y_start> --x_end <x_end> --y_end <y_end>
-    
-    Args:
-        --input_path (str): The path of the image to be cropped or a directory containing images to be cropped. The image must be in 3D with format (Z,Y,X).
-        --output_path (str): The path where the cropped image(s) should be saved (must be a directory).
-        --x_start (int): The x-coordinate of the top-left corner of the cropping rectangle.
-        --y_start (int): The y-coordinate of the top-left corner of the cropping rectangle.
-        --x_end (int): The x-coordinate of the bottom-right corner of the cropping rectangle.
-        --y_end (int): The y-coordinate of the bottom-right corner of the cropping rectangle.
-    """
     start = time.time()
     parser = argparse.ArgumentParser(
-        description="Crop the given image using the provided coordinates"
+        description="Denoise the given image"
     )
     parser.add_argument("--input_path", required=True, type=pathlib.Path)
     parser.add_argument("--output_path", required=True, type=pathlib.Path)
-    parser.add_argument("--x_start", required=True, type=int)
-    parser.add_argument("--y_start", required=True, type=int)
-    parser.add_argument("--x_end", required=True, type=int)
-    parser.add_argument("--y_end", required=True, type=int)
     args = parser.parse_args()
 
     cropping(args.input_path, args.output_path, args.x_start, args.y_start, args.x_end, args.y_end)
