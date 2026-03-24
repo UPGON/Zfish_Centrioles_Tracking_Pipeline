@@ -1,0 +1,55 @@
+import argparse
+import pathlib
+import time
+import tifffile
+import numpy as np
+from itertools import product
+from stardist.models import StarDist3D
+from cellpose import models, core, io, plot
+from csbdeep.utils import Path, normalize
+
+def normalise(vol):
+    T, Z, C, Y, X = vol.shape
+    axis_norm = (0,1,2)
+    norm_volumes = np.empty(vol.shape, vol.dtype)
+    for t, z, c in product(range(T), range(Z), range(C)):
+                img = vol[t,z,c]
+                norm_volumes[t,z,c] = normalize(img, 1,99.8, axis=axis_norm)
+
+def startdist_segm(vol, output_path, model_name = "dsb2018_heavy_augment"):
+    norm_vol = normalise(vol)
+    model = StarDist3D.from_pretrained(model_name)
+    labels, polys = model.predict_instances(
+        norm_vol[:,1],  # The image must be normalized
+        axes="ZYX",
+        prob_thresh=0.5,  # Detection probability threshold
+        nms_thresh=0.1,  # Remove detections overlapping by more than this threshold
+        scale=1,  # Higher values are suitable for lower resolution data
+        return_labels=True,
+    )
+
+def cellpose_segm(vol, output_path, model_name):
+    model = models.CellposeModel(gpu=True)
+    masks, flows, _ = model.eval(vol, z_axis=0, channel_axis=1,
+                                batch_size=32,
+                                do_3D=True, flow3D_smooth=1)
+
+def segmentation(input_path, output_path, model, model_name):
+      memmap_volume = tifffile.memmap(input_path)
+      match model: 
+            case "stardist":
+                  startdist_segm(memmap_volume, output_path, model_name)
+            case _:
+                  print("Wrong model enter")
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Crop the given image using the provided coordinates"
+    )
+    parser.add_argument("--input_path", required=True, type=pathlib.Path)
+    parser.add_argument("--output_path", required=True, type=pathlib.Path)
+    parser.add_argument("--model", required=True, type=float)
+    parser.add_argument("--model_name", nargs='?', type=int, const="dsb2018_heavy_augment")
+    args = parser.parse_args()
+
+    segmentation(args.input_path, args.output_path, args.model, args.model_name)
