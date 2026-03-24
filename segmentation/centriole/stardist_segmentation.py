@@ -28,19 +28,9 @@ def startdist_segm(vol, output_path, model_name = "dsb2018_heavy_augment"):
         return_labels=True,
     )
 
-def cellpose_segm(vol, output_path, model_name):
-    model = models.CellposeModel(gpu=True)
-    masks, flows, _ = model.eval(vol, z_axis=0, channel_axis=1,
-                                batch_size=32,
-                                do_3D=True, flow3D_smooth=1)
-
-def segmentation(input_path, output_path, model, model_name):
-      memmap_volume = tifffile.memmap(input_path)
-      match model: 
-            case "stardist":
-                  startdist_segm(memmap_volume, output_path, model_name)
-            case _:
-                  print("Wrong model enter")
+def segmentation(input_path, output_path, model_name):
+    memmap_volume = tifffile.memmap(input_path)
+    startdist_segm(memmap_volume, output_path, model_name)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -48,8 +38,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--input_path", required=True, type=pathlib.Path)
     parser.add_argument("--output_path", required=True, type=pathlib.Path)
-    parser.add_argument("--model", required=True, type=float)
     parser.add_argument("--model_name", nargs='?', type=int, const="dsb2018_heavy_augment")
     args = parser.parse_args()
 
-    segmentation(args.input_path, args.output_path, args.model, args.model_name)
+    segmentation(args.input_path, args.output_path, args.model_name)
