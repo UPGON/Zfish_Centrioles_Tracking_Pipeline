@@ -52,7 +52,7 @@ def interpolation(input, output, scale, fx, fy):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Crop the given image using the provided coordinates"
+        description="Interpolate the gien image using linear interpolation"
     )
     parser.add_argument("--input_path", required=True, type=pathlib.Path)
     parser.add_argument("--output_path", required=True, type=pathlib.Path)
