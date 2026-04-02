@@ -51,6 +51,18 @@ def interpolation(input, output, scale, fx, fy):
     print(f"Interpolation took {(time.time() - start_time):.2f} seconds")
 
 if __name__ == "__main__":
+    """ Command-line interface for interpolating a 5D volume using linear interpolation.
+    
+    Usage: 
+        python interpolation.py --input_path <path_to_input_image> --output_path <path_to_output_image> --scale <scaling_factor> [--fx <fx>] [--fy <fy>]
+
+    Args:
+        --input_path (str): The path of the image to be interpolated. The image must be in 3D with format (T,Z,Y,X).
+        --output_path (str): The path where the interpolated image(s) should be saved (must be a directory).
+        --scale (float): The scaling factor for interpolation (e.g., 0.75 for 75% of original size).
+        --fx (int, optional): The scaling factor along the x-axis. Default is 1.
+        --fy (int, optional): The scaling factor along the y-axis. Default is 1.
+    """
     parser = argparse.ArgumentParser(
         description="Interpolate the gien image using linear interpolation"
     )
