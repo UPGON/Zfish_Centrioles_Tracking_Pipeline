@@ -5,36 +5,16 @@ import tifffile
 import numpy as np
 from itertools import product
 from stardist.models import StarDist3D
-from cellpose import models, core, io, plot
 from csbdeep.utils import Path, normalize
 import tqdm
 import pandas as pd
 
-def normalise3D(vol):
-    Z= vol.shape[0]
-    norm_volumes = np.empty(vol.shape, vol.dtype)
+def normalizesFrame(frame, pmin=1, pmax=99.8):
+    Z= frame.shape[0]
+    norm_volumes = np.empty(frame.shape)
     for z in range(Z):
-            img = vol[z]
-            norm_volumes[z] = normalize(img, 1,99.8)
-    return norm_volumes
-
-def normalize4D(vol, pmin, pmax, axis=None):
-    T, Z, C, Y, X = vol.shape
-    axis_norm = (0,1,2)
-    norm_volumes = np.empty(vol.shape, vol.dtype)
-    for t, z, c in product(range(T), range(Z), range(C)):
-        img = vol[t,z,c]
-        norm_volumes[t,z,c] = normalize(img, 1,99.8, axis=axis_norm)
-
-def normalizeVol(vol):
-    vol_axis = vol.shape
-    norm_axis = np.arange(len(vol_axis - 2))
-    norm_volumes = np.empty(vol.shape, vol.dtype)
-    norm_ranges = [np.arange(vol_axis[i]) for i in norm_axis]
-    for idx in product(*norm_ranges):
-        img = vol[idx]
-        norm_volumes[idx] = (img - img.min()) / (img.max() - img.min())
-
+            slice = frame[z]
+            norm_volumes[z] = normalize(slice, pmin,pmax)
     return norm_volumes
 
 def save_results(labels, polys, output_path, channel_id):
@@ -64,7 +44,7 @@ def startdist_segm(img, output_path, model_name, channel_id):
         axes="ZYX",
         prob_thresh=0.5,  # Detection probability threshold
         nms_thresh=0.1,  # Remove detections overlapping by more than this threshold
-        scale=1,  # Higher values are suitable for lower resolution data
+        scale=2,  # Higher values are suitable for lower resolution data
         return_labels=True,
     )
     save_results(labels, polys, output_path, channel_id)
@@ -78,7 +58,7 @@ def segmentation(input_path, output_path, model_name, channel_id, timepoint):
     if timepoint is not None:
         print(f"Processing a single frame at T={timepoint}")
         img = vol_c[timepoint]
-        norm_img = normalizeVol(img)
+        norm_img = normalizesFrame(img)
 
         startdist_segm(norm_img, output_path, model_name, channel_id)
     else:
@@ -86,10 +66,10 @@ def segmentation(input_path, output_path, model_name, channel_id, timepoint):
         [t,z,y,x] = vol_c.shape
         composite = np.empty((t,z,2,y,x), dtype = np.uint8)
 
-        norm_vol_c = normalize4D(vol_c)
 
         for ti in tqdm(range(t), desc="Detecting blobs in frames", unit="frame"):
-            startdist_segm(norm_vol_c[ti], output_path, model_name, channel_id)
+            norm_vol_c_ti = normalizesFrame(vol_c[ti])
+            startdist_segm(norm_vol_c_ti, output_path, model_name, channel_id)
 
 if __name__ == "__main__":
     """ Command-line interface for segmenting an image using a pre-trained StarDist model.
