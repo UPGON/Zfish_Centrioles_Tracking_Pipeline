@@ -8,9 +8,12 @@ import cv2
 import numpy as np
 import pandas as pd
 from skimage.feature import blob_dog, blob_log
+from skimage.filters import threshold_yen
+from skimage.measure import label
+from skimage.morphology import remove_small_objects
 from tqdm import tqdm
 
-def save_results(composite, blobs_coords,input_path, output_path, channel_id, algorithm, min_sigma, max_sigma, threshold,radius_max, timepoint, z_min, z_max):
+def save_results(composite, blobs_coords,input_path, output_path, channel_id, algorithm, min_sigma, max_sigma, threshold,radius_max,area_max, timepoint, z_min, z_max):
     """ Save the composite image, the blobs centers coordinate and the parameters used
     
     Args:
@@ -52,6 +55,7 @@ def save_results(composite, blobs_coords,input_path, output_path, channel_id, al
         "Max_sigma": max_sigma,
         "Threshold": threshold,
         "Radius max":radius_max,
+        "Area max": area_max,
         "Z min": z_min if z_min is not None else "all",
         "Z max": z_max if z_max is not None else "all"
     }]).to_csv(output_param_path, index_label ="index")
@@ -125,7 +129,30 @@ def apply_detection_algorithm(img,algorithm,min_sigma, max_sigma, threshold):
     
     return algorithms[algorithm](img,min_sigma=min_sigma, max_sigma=max_sigma, threshold=threshold)
 
-def frame_blob_detection(frame, algorithm,min_sigma, max_sigma, threshold,radius_max):
+def remove_large_area_element(frame,blob_center,area_max):
+    # Take all the unique zframe
+    zframes_detected = np.unique(blob_center[:,0]).astype(int)
+    curated_blob_center = blob_center.copy()
+
+    keep_mask = np.ones(len(blob_center), dtype=bool)
+
+    for z in zframes_detected:
+
+        thresh_yen = threshold_yen(frame[z])
+        thresh_yen_img = frame[z] > thresh_yen
+        img_labels = label(thresh_yen_img)
+        large_obj = remove_small_objects(img_labels, min_size=area_max) != 0
+        z_indices = np.where(blob_center[:,0] == z)[0]
+        
+        for idx in z_indices:
+            y, x = blob_center[idx][1:3].astype(int)
+
+            if(large_obj[y,x]):
+                keep_mask[idx] = False  
+    return curated_blob_center[keep_mask]
+    
+
+def frame_blob_detection(frame, algorithm,min_sigma, max_sigma, threshold,radius_max, area_max):
     """Detect blobs and create an annotated images of the given 3D frame (image at a fixed time)
     
     Args:
@@ -138,12 +165,18 @@ def frame_blob_detection(frame, algorithm,min_sigma, max_sigma, threshold,radius
         Tuple of (blob_coordinates, composite)
     """
     blobs_center = apply_detection_algorithm(frame, algorithm,min_sigma, max_sigma, threshold)
-    blobs_center = blobs_center[blobs_center[:,-1] <= radius_max]
+
+    if radius_max is not None:
+        blobs_center = blobs_center[blobs_center[:,-1] <= radius_max]
+
+    if area_max is not None: 
+        blobs_center = remove_large_area_element(frame, blobs_center, area_max)
+
     mask = create_center_mask(blobs_center, frame.shape)
     composite = np.stack([frame, mask], axis=1)
     return [blobs_center, composite]
 
-def blob_detection(input_path, output_path, channel_id, algorithm, min_sigma, max_sigma, threshold, radius_max, timepoint = None, z_min = None, z_max = None):
+def blob_detection(input_path, output_path, channel_id, algorithm, min_sigma, max_sigma, threshold, radius_max = None, area_max = None, timepoint = None, z_min = None, z_max = None):
     """Main blob detection pipeline.
     
     Args:
@@ -173,7 +206,7 @@ def blob_detection(input_path, output_path, channel_id, algorithm, min_sigma, ma
     # Single frame (timepoint) to process
     if timepoint is not None:
         print(f"Processing a single frame at T={timepoint}")
-        [blobs_coords,composite] = frame_blob_detection(vol_c[timepoint-1], algorithm,min_sigma, max_sigma, threshold,radius_max)
+        [blobs_coords,composite] = frame_blob_detection(vol_c[timepoint-1], algorithm,min_sigma, max_sigma, threshold,radius_max,area_max)
     # Process for all the frames 
     else:
         print(f"Processing all the frames")
@@ -181,7 +214,7 @@ def blob_detection(input_path, output_path, channel_id, algorithm, min_sigma, ma
         composite = np.empty((t,len(z_range),2,y,x), dtype = np.uint8)
 
         for ti in tqdm(range(t), desc="Detecting blobs in frames", unit="frame"):
-            [blobs_coord,composite[ti]] = frame_blob_detection(vol_c[ti], algorithm, min_sigma,max_sigma, threshold,radius_max)
+            [blobs_coord,composite[ti]] = frame_blob_detection(vol_c[ti], algorithm, min_sigma,max_sigma, threshold,radius_max,area_max)
             
             # Add the t frame value as the first element of the array 
             blobs_coord = np.column_stack([np.full(len(blobs_coord), ti), blobs_coord])
@@ -195,7 +228,7 @@ def blob_detection(input_path, output_path, channel_id, algorithm, min_sigma, ma
         print("No blob detected")
         return
     
-    save_results(composite, blobs_coords,input_path, output_path, channel_id, algorithm, min_sigma,  max_sigma, threshold, radius_max, timepoint, z_min, z_max)
+    save_results(composite, blobs_coords,input_path, output_path, channel_id, algorithm, min_sigma,  max_sigma, threshold, radius_max,area_max, timepoint, z_min, z_max)
 
     print(f"{algorithm} algorithm took {(time.time() - start_time):.2f} seconds")
 
@@ -224,7 +257,8 @@ if __name__ == "__main__":
     parser.add_argument("--min_sigma", required=True, type=float)
     parser.add_argument("--max_sigma", required=True, type=float)
     parser.add_argument("--threshold", required=True, type=float)
-    parser.add_argument("--radius_max", required=True, type=float)
+    parser.add_argument("--radius_max", type=float)
+    parser.add_argument("--area_max", type = float)
     parser.add_argument("--timepoint", type = int)
     parser.add_argument("--z_min", type = int)
     parser.add_argument("--z_max", type = int)
@@ -240,6 +274,7 @@ if __name__ == "__main__":
             args.max_sigma, 
             args.threshold, 
             args.radius_max,
+            args.area_max,
             args.timepoint,
             args.z_min,
             args.z_max
