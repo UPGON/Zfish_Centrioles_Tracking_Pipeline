@@ -10,11 +10,13 @@ import tqdm
 import pandas as pd
 
 import sys
+
 sys.path.append(r"K:\users\voland\Code\Zfish_Centrioles_Tracking_Pipeline")
-from utils import utils
+from src.utils import utils
+
 
 def normalizes_frame(frame, pmin=1, pmax=99.8):
-    """ Normalize a 3D image frame using percentile-based normalization.
+    """Normalize a 3D image frame using percentile-based normalization.
     Args:
         frame: 3D image (Z, Y, X)
         pmin: Minimum percentile for normalization
@@ -22,39 +24,40 @@ def normalizes_frame(frame, pmin=1, pmax=99.8):
     Returns:
         Normalized 3D image
     """
-    Z= frame.shape[0]
+    Z = frame.shape[0]
     norm_volumes = np.empty(frame.shape)
     for z in range(Z):
-            slice = frame[z]
-            norm_volumes[z] = normalize(slice, pmin,pmax)
+        slice = frame[z]
+        norm_volumes[z] = normalize(slice, pmin, pmax)
     return norm_volumes
 
-def save_results(labels, polys,input_path, output_path, channel_id, timepoint):
-    #Save the annotated image
+
+def save_results(labels, polys, input_path, output_path, channel_id, timepoint):
+    # Save the annotated image
     output_img_path = output_path / f"C{channel_id}_detected_img.tif"
-    tifffile.imwrite(output_img_path, 
-                        labels,
-                        imagej=True,
-                        compression='zlib'
-                        )
-    
+    tifffile.imwrite(output_img_path, labels, imagej=True, compression="zlib")
+
     # Save the blobs center coordinate
     polys_df = pd.DataFrame(polys)
     output_coords_path = output_path / f"C{channel_id}_detected_coords.csv"
-    polys_df.to_csv(output_coords_path, index_label ="index")
+    polys_df.to_csv(output_coords_path, index_label="index")
 
     # Save the parameters used for the detection
     output_param_path = output_path / f"C{channel_id}_params.csv"
-    pd.DataFrame([{
-        "Input path": str(input_path),
-        "Channel": channel_id,
-        "Timepoint": timepoint if timepoint is not None else "all",
-        "Blobs detected": len(polys)
-    }]).to_csv(output_param_path, index_label ="index")
+    pd.DataFrame(
+        [
+            {
+                "Input path": str(input_path),
+                "Channel": channel_id,
+                "Timepoint": timepoint if timepoint is not None else "all",
+                "Blobs detected": len(polys),
+            }
+        ]
+    ).to_csv(output_param_path, index_label="index")
 
 
-def segment_frame(frame, model_name = '3D_demo', proba_thresh = 0.5, nms_thresh = 0.1, scale = 2):
-    """ Segment a 3D image using the StarDist model and save the results.
+def segment_frame(frame, model_name="3D_demo", proba_thresh=0.5, nms_thresh=0.1, scale=2):
+    """Segment a 3D image using the StarDist model and save the results.
     Args:
         img (numpy.ndarray): The input image to segment.
         output_path (str): The path where the segmented image will be saved.
@@ -73,9 +76,10 @@ def segment_frame(frame, model_name = '3D_demo', proba_thresh = 0.5, nms_thresh 
     )
     return [labels, polys]
 
-def segmentation(input_path, output_path, channel_id, timepoint,z_min, z_max, model_name):
-    """ Main segmentation pipeline.
-    
+
+def segmentation(input_path, output_path, channel_id, timepoint, z_min, z_max, model_name):
+    """Main segmentation pipeline.
+
     Args:
         input_path: Path to input TIFF
         output_path: Output directory
@@ -87,14 +91,14 @@ def segmentation(input_path, output_path, channel_id, timepoint,z_min, z_max, mo
         None: The function saves the segmented image and coordinates to the specified output path.
     """
     vol = tifffile.memmap(input_path)
-    [t,z,y,x] = vol_c.shape
+    [t, z, y, x] = vol_c.shape
     utils.verify_input(vol, channel_id, timepoint, z_min, z_max)
 
     # If no z min and max were specified, then we process over the whole z stack
     z_min = z_min if z_min is not None else 0
     z_max = z_max if z_max is not None else z
     z_range = range(z_min, z_max)
-    vol_c = vol[:,z_range,channel_id]
+    vol_c = vol[:, z_range, channel_id]
 
     composite = None
     polys = {}
@@ -106,7 +110,7 @@ def segmentation(input_path, output_path, channel_id, timepoint,z_min, z_max, mo
         [composite, polys] = segment_frame(norm_img, model_name)
     else:
         print(f"Processing all the frames")
-        composite = np.empty((t,len(z_range),2,y,x), dtype = np.uint8)
+        composite = np.empty((t, len(z_range), 2, y, x), dtype=np.uint8)
 
         for ti in tqdm(range(t), desc="Detecting blobs in frames", unit="frame"):
             norm_vol_c_ti = normalizes_frame(vol_c[ti])
@@ -119,11 +123,21 @@ def segmentation(input_path, output_path, channel_id, timepoint,z_min, z_max, mo
         print("No spots detected")
         return
 
-    save_results(composite, polys,input_path, output_path, channel_id, timepoint, z_min, z_max, model_name)
+    save_results(
+        composite,
+        polys,
+        input_path,
+        output_path,
+        channel_id,
+        timepoint,
+        z_min,
+        z_max,
+        model_name,
+    )
 
 
 if __name__ == "__main__":
-    """ Command-line interface for segmenting an image using a pre-trained StarDist model.
+    """Command-line interface for segmenting an image using a pre-trained StarDist model.
     Usage:
         python stardist_segmentation.py --input_path <path_to_input_image> --output_path <path_to_output_directory> --model_name <name_of_pretrained_model> --channel_id <channel_id> [--timepoint <timepoint_to_process>]
     Args:
@@ -138,11 +152,19 @@ if __name__ == "__main__":
     )
     parser.add_argument("--input_path", required=True, type=pathlib.Path)
     parser.add_argument("--output_path", required=True, type=pathlib.Path)
-    parser.add_argument("--channel_id", required=True, type = int)
-    parser.add_argument("--timepoint", type = int)
-    parser.add_argument("--z_min", type = int)
-    parser.add_argument("--z_max", type = int)
-    parser.add_argument("--model_name", nargs='?', type=str, const='3D_demo')
+    parser.add_argument("--channel_id", required=True, type=int)
+    parser.add_argument("--timepoint", type=int)
+    parser.add_argument("--z_min", type=int)
+    parser.add_argument("--z_max", type=int)
+    parser.add_argument("--model_name", nargs="?", type=str, const="3D_demo")
     args = parser.parse_args()
 
-    segmentation(args.input_path, args.output_path, args.channel_id, args.timepoint, args.z_min, args.z_max, args.model_name)
+    segmentation(
+        args.input_path,
+        args.output_path,
+        args.channel_id,
+        args.timepoint,
+        args.z_min,
+        args.z_max,
+        args.model_name,
+    )
