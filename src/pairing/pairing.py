@@ -22,8 +22,8 @@ def pairing_points(points1, points2,max_pairing_distance):
     
 
 def pairing_points_df(points1_df, points2_df, max_pairing_distance, columns_name = ["idx1","idx2","dist"]):
-    points1 = points1_df[["Zmi", "Ymi", "Xmi"]].values
-    points2 = points2_df[["Zmi", "Ymi", "Xmi"]].values
+    points1 = points1_df[["Zum", "Yum", "Xum"]].values
+    points2 = points2_df[["Zum", "Yum", "Xum"]].values
 
     opti_row, opti_col, distances =  pairing_points(points1, points2, max_pairing_distance)
     
@@ -44,17 +44,20 @@ def temporal_pairing_points_df(points1_df, points2_df, max_pairing_distance, col
 
     nbFrames = points1_df["T"].max()
 
-    for frame in range(nbFrames):
+    for ti in range(int(nbFrames)):
         # We should work frame by frame as colocalisation only makes sense for the same temporality
-        points1_df_t = points1_df[points1_df["T"] == frame]
-        points2_df_t = points2_df[points2_df["T"] == frame]
+        points1_df_t = points1_df[points1_df["T"] == ti]
+        points2_df_t = points2_df[points2_df["T"] == ti]
 
-        opti_row, opti_col, distances = pairing_points(points1_df_t,points2_df_t,max_pairing_distance=max_pairing_distance)
+        points1 = points1_df_t[["Zum", "Yum", "Xum"]].values
+        points2 = points2_df_t[["Zum", "Yum", "Xum"]].values
+
+        opti_row, opti_col, distances = pairing_points(points1,points2,max_pairing_distance=max_pairing_distance)
 
         idx1 = points1_df_t["index"].iloc[opti_row].values
         idx2 = points2_df_t["index"].iloc[opti_col].values
 
-        frame_nb = np.full(len(distances), frame)
+        frame_nb = np.full(len(distances), ti)
 
         stack_res = np.stack([idx1,idx2,distances,frame_nb],axis=1)
         results.append(stack_res)

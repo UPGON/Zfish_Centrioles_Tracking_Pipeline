@@ -2,35 +2,34 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
-def verify_input(vol, channel_id, timepoint, z_min, z_max):
-    """Verify the input parameters and volume dimensions.
+def verify_input(vol, channel_id, timepoint=None, z_min=None, z_max=None):
+    """Verify input parameters."""
+    if vol.ndim == 5:
+        t, z, c, y, x = vol.shape
+        if timepoint is not None and (timepoint < 0 or timepoint >= t):
+            raise ValueError(
+                f"Timepoint {timepoint} out of bounds for volume with {t} timepoints"
+            )
+    elif vol.ndim == 4:
+        z, c, y, x = vol.shape
+        if timepoint is not None:
+            raise ValueError("Timepoint should be None for 4D images")
+    else:
+        raise ValueError(
+            f"Volume must be 5D (T,Z,C,Y,X) or 4D (Z,C,Y,X), got {vol.shape}"
+        )
 
-    Args:
-        vol: Input volume
-        channel_id: Channel to process
-        timepoint: Optional specific timepoint to process
-        z_min: Minimum z slice to process
-        z_max: Maximum z slice to process
-    """
-    if vol.ndim != 5:
-        raise ValueError(f"Input volume must be 5D (T,Z,C,Y,X), but got shape {vol.shape}")
+    if channel_id < 0 or channel_id >= c:
+        raise ValueError(f"Channel {channel_id} out of bounds (have {c} channels)")
 
-    T, Z, C, Y, X = vol.shape
+    if z_min is not None and (z_min < 0 or z_min >= z):
+        raise ValueError(f"z_min {z_min} out of bounds (have {z} slices)")
 
-    if channel_id < 0 or channel_id >= C:
-        raise ValueError(f"Channel ID {channel_id} is out of bounds for volume with {C} channels.")
-
-    if timepoint is not None and (timepoint < 0 or timepoint >= T):
-        raise ValueError(f"Timepoint {timepoint} is out of bounds for volume with {T} timepoints.")
-
-    if z_min is not None and (z_min < 0 or z_min >= Z):
-        raise ValueError(f"z_min {z_min} is out of bounds for volume with {Z} z slices.")
-
-    if z_max is not None and (z_max <= 0 or z_max > Z):
-        raise ValueError(f"z_max {z_max} is out of bounds for volume with {Z} z slices.")
+    if z_max is not None and (z_max <= 0 or z_max > z):
+        raise ValueError(f"z_max {z_max} out of bounds (have {z} slices)")
 
     if z_min is not None and z_max is not None and z_min >= z_max:
-        raise ValueError(f"z_min {z_min} must be less than z_max {z_max}.")
+        raise ValueError(f"z_min ({z_min}) must be < z_max ({z_max})")
 
 
 def verif_stack_point(stack, point):

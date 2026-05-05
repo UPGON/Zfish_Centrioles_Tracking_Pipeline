@@ -12,18 +12,23 @@ from utils import utils
 # Maximal distance between any label center and the image border in pixel
 LABEL_MARGIN = 5
 
-def draw_circles(stack, centers, radius=8, color=255, thickness=1):
+def draw_circles(stack, centers, radius=4, color=255, thickness=1):
     """Draw circles on the stack images at the centers coordinates
 
     Args:
         stack: Input frame of shape [Z,Y,X]
         centers (int,int,int): List of the centers coordinates as [z,y,x]
     """
+    if(len(radius) == 1):
+        r = np.full(len(centers), radius)
+    elif(len(radius) != len(centers)):
+        raise ValueError("The number of radius should be either 1 or the same as the number of centers")
     res_stack = stack.copy()
-    for center in centers:
+    for i in range(len(centers)):
+        center = centers
         z, y, x = center.astype(int)
         utils.verif_stack_point(stack, center)
-        cv2.circle(res_stack[z], center=(x, y), radius=radius, color=color, thickness=thickness)
+        cv2.circle(res_stack[z], center=(x, y), radius=r*2, color=color, thickness=thickness)
     return res_stack
 
 def create_circle_mask(centers, shape, radius=4, color = 200, thickness = 1):
@@ -70,7 +75,7 @@ def add_text(stack,text, coord, font=cv2.FONT_HERSHEY_COMPLEX_SMALL, text_offset
     )
     return res_stack
 
-def plot_points_comparison(stack, points, labels, window_size=40, z_margin=4, text_offset=(-5, 5)):
+def plot_points_comparison(stack, points, labels, window_size=60, z_margin=4, text_offset=(-5, 5)):
     """Plot a close-up view of the z-max projection stack for multiple points."""
     if len(points) != len(labels):
         raise ValueError("points and labels must have the same length.")
@@ -114,7 +119,7 @@ def plot_points_comparison(stack, points, labels, window_size=40, z_margin=4, te
     fig.suptitle("Spots detection verification of edge case")
     plt.show()
 
-def plot_points_closeup(stack, points,radius, window_size = 40, z_margin=4):
+def plot_points_closeup(stack, points,radius, window_size = 46, z_margin=4):
     if len(points) == 0:
         raise ValueError("points cannot be empty.")
 
