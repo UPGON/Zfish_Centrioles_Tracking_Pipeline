@@ -3,6 +3,7 @@ import sys
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
+import traceback
 
 import tifffile
 from tqdm import tqdm
@@ -185,6 +186,8 @@ def cropping(
     x_start=None,
     x_end=None,
 ):
+    start = time.time()
+
     if input_path.is_file():
         crop_file(
             input_path,
@@ -217,6 +220,7 @@ def cropping(
         raise FileNotFoundError(f"{input_path} is neither a file nor a directory.")
 
     print("Successfully cropped images")
+    print(f"Operation time: {time.time() - start:.6f}s")
 
 
 def _build_arg_parser():
@@ -241,21 +245,23 @@ def _build_arg_parser():
 
 
 if __name__ == "__main__":
-    start = time.time()
     args = _build_arg_parser().parse_args()
+    try:
+        cropping(
+            args.input_path,
+            args.output_path,
+            args.format,
+            args.t_start,
+            args.t_end,
+            args.z_start,
+            args.z_end,
+            args.y_start,
+            args.y_end,
+            args.x_start,
+            args.x_end,
+        )
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        traceback.print_exc()
+        sys.exit(1)
 
-    cropping(
-        args.input_path,
-        args.output_path,
-        args.format,
-        args.t_start,
-        args.t_end,
-        args.z_start,
-        args.z_end,
-        args.y_start,
-        args.y_end,
-        args.x_start,
-        args.x_end,
-    )
-
-    print(f"Operation time: {time.time() - start:.6f}s")

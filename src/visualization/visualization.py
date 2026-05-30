@@ -12,7 +12,7 @@ from utils import utils
 # Maximal distance between any label center and the image border in pixel
 LABEL_MARGIN = 5
 
-def draw_circles(stack, centers, radius=4, color=255, thickness=1):
+def draw_circles2D(img, centers, radius=[4], color=255, thickness=1):
     """Draw circles on the stack images at the centers coordinates
 
     Args:
@@ -23,15 +23,36 @@ def draw_circles(stack, centers, radius=4, color=255, thickness=1):
         r = np.full(len(centers), radius)
     elif(len(radius) != len(centers)):
         raise ValueError("The number of radius should be either 1 or the same as the number of centers")
+    res_img = img.copy()
+    for i in range(len(centers)):
+        center = centers[i]
+        y, x = center.astype(int)
+        ri = r[i] if len(radius) > 1 else r[0]
+        utils.verif_img_point(img, center)
+        cv2.circle(res_img, center=(x, y), radius=ri*2, color=color, thickness=thickness)
+    return res_img
+
+def draw_circles(stack, centers, radius=[4], color=255, thickness=1):
+    """Draw circles on the stack images at the centers coordinates
+
+    Args:
+        stack: Input frame of shape [Z,Y,X]
+        centers (int,int,int): List of the centers coordinates as [z,y,x]
+    """
+    if(len(radius) == 1):
+        radius = np.full(len(centers), radius)
+    elif(len(radius) != len(centers)):
+        raise ValueError("The number of radius should be either 1 or the same as the number of centers")
     res_stack = stack.copy()
     for i in range(len(centers)):
-        center = centers
+        center = centers[i]
         z, y, x = center.astype(int)
+        ri = radius[i].astype(int)
         utils.verif_stack_point(stack, center)
-        cv2.circle(res_stack[z], center=(x, y), radius=r*2, color=color, thickness=thickness)
+        cv2.circle(res_stack[z], center=(x, y), radius=ri*2, color=color, thickness=thickness)
     return res_stack
 
-def create_circle_mask(centers, shape, radius=4, color = 200, thickness = 1):
+def create_circle_mask(centers, vol, radius=[4], color = 200, thickness = 1):
     """Create a mask with circles 
 
     Args:
@@ -42,11 +63,18 @@ def create_circle_mask(centers, shape, radius=4, color = 200, thickness = 1):
     Returns:
         3D mask array with circles at blob centers
     """
-    mask = np.zeros(shape, dtype=np.uint8)
-    for center in centers:
+    if(len(radius) == 1):
+        radius = np.full(len(centers), radius)
+    elif(len(radius) != len(centers)):
+        raise ValueError("The number of radius should be either 1 or the same as the number of centers")
+    
+    mask = np.zeros(vol.shape, dtype=vol.dtype)
+    for i in range(len(centers)):
+        center = centers[i]
         utils.verif_stack_point(mask, center)
         z, y, x = center.astype(int)
-        cv2.circle(mask[z], center=(x, y), radius=radius, color=200, thickness=1)
+        ri = radius[i].astype(int)
+        cv2.circle(mask[z], center=(x, y), radius=ri*2, color=200, thickness=1)
     return mask
 
 
@@ -73,6 +101,20 @@ def add_text(stack,text, coord, font=cv2.FONT_HERSHEY_COMPLEX_SMALL, text_offset
         thickness=1,
         lineType=cv2.LINE_AA,
     )
+    return res_stack
+
+def add_texts(stack,texts,coords, font=cv2.FONT_HERSHEY_COMPLEX_SMALL, text_offset = (-5,2), color = 255):
+    """Add text annotation on the stack images at the given coordinates
+
+    Args:
+        stack: Input frame of shape [Z,Y,X]
+        texts: 
+        centers (int,int,int): List of the centers coordinates as [z,y,x]
+    """
+    res_stack = stack.copy()
+    for text, coord in zip(texts, coords):
+        res_stack = add_text(res_stack,text, coord, font=font, text_offset=text_offset, color=color)
+    
     return res_stack
 
 def plot_points_comparison(stack, points, labels, window_size=60, z_margin=4, text_offset=(-5, 5)):

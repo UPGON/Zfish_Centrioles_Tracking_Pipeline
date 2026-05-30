@@ -33,6 +33,7 @@ def main():
     print(path_in)
     all_tp=set([int(fn.name.split("T")[1].split(".")[0]) for fn in list(path_in.glob("*C01*.tif"))])
     n=max(all_tp)
+    n = "test"
 
     command = SLURM_COMMAND.format(n , args.in_fld)
     print(command)

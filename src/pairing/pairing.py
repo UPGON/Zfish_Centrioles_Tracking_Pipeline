@@ -1,67 +1,78 @@
-import scipy 
+import scipy
+import scipy.spatial
+import scipy.optimize
 import pandas as pd
 import numpy as np
 
 
-def pairing_points(points1, points2,max_pairing_distance):
+def pairing_points(points1, points2, max_pairing_distance):
     dist_matrix = scipy.spatial.distance_matrix(points1, points2)
 
-    # Optimize only the point that are close enough
     dist_mat_masked = dist_matrix.copy()
     dist_mat_masked[dist_matrix > max_pairing_distance] = 1e10
 
     opti_row, opti_col = scipy.optimize.linear_sum_assignment(dist_mat_masked)
     distances = dist_matrix[opti_row, opti_col]
 
-    filtered_opti_row = opti_row[distances <= max_pairing_distance]
-    filtered_opti_col = opti_col[distances <= max_pairing_distance]
-    distances = distances[distances <= max_pairing_distance]
+    valid = distances <= max_pairing_distance
+    return opti_row[valid], opti_col[valid], distances[valid]
 
-    return filtered_opti_row, filtered_opti_col, distances
 
-    
+def pairing_points_df(points1_df, points2_df, max_pairing_distance,
+                      columns_name=["idx1", "idx2", "dist"]):
 
-def pairing_points_df(points1_df, points2_df, max_pairing_distance, columns_name = ["idx1","idx2","dist"]):
+    points1_df = points1_df.reset_index(drop=True)
+    points2_df = points2_df.reset_index(drop=True)
+
     points1 = points1_df[["Zum", "Yum", "Xum"]].values
     points2 = points2_df[["Zum", "Yum", "Xum"]].values
 
-    opti_row, opti_col, distances =  pairing_points(points1, points2, max_pairing_distance)
-    
+    opti_row, opti_col, distances = pairing_points(points1, points2, max_pairing_distance)
+
     idx1 = points1_df["index"].iloc[opti_row].values
     idx2 = points2_df["index"].iloc[opti_col].values
 
-    pairing_data = np.stack([idx1,idx2,distances],axis=1)
+    return pd.DataFrame(
+        np.stack([idx1, idx2, distances], axis=1),
+        columns=columns_name
+    )
 
-    return pd.DataFrame(pairing_data, columns=columns_name)
 
+def temporal_pairing_points_df(points1_df, points2_df, max_pairing_distance,
+                                columns_name=["idx1", "idx2", "dist", "T"]):
 
-def temporal_pairing_points_df(points1_df, points2_df, max_pairing_distance, columns_name = ["idx1","idx2","dist","T"]):
+    frames1 = sorted(points1_df["T"].unique())
+    frames2 = sorted(points2_df["T"].unique())
+
+    if frames1 != frames2:
+        raise ValueError("The two datasets do not have the same set of frames. "
+                         f"Ch1: {frames1}, Ch2: {frames2}")
 
     results = []
 
-    if(points1_df["T"].max() != points2_df["T"].max()):
-         raise ValueError("The points from the dataset should have the same number of frames")
+    for ti in frames1:
+        points1_df_t = points1_df[points1_df["T"] == ti].reset_index(drop=True)  
+        points2_df_t = points2_df[points2_df["T"] == ti].reset_index(drop=True)  
 
-    nbFrames = points1_df["T"].max()
-
-    for ti in range(int(nbFrames)):
-        # We should work frame by frame as colocalisation only makes sense for the same temporality
-        points1_df_t = points1_df[points1_df["T"] == ti]
-        points2_df_t = points2_df[points2_df["T"] == ti]
+        # Skip frames where one channel has no detections
+        if len(points1_df_t) == 0 or len(points2_df_t) == 0:
+            print(f"Warning: no spots in frame {ti} for one channel, skipping.")
+            continue
 
         points1 = points1_df_t[["Zum", "Yum", "Xum"]].values
         points2 = points2_df_t[["Zum", "Yum", "Xum"]].values
 
-        opti_row, opti_col, distances = pairing_points(points1,points2,max_pairing_distance=max_pairing_distance)
+        opti_row, opti_col, distances = pairing_points(
+            points1, points2, max_pairing_distance=max_pairing_distance
+        )
 
-        idx1 = points1_df_t["index"].iloc[opti_row].values
-        idx2 = points2_df_t["index"].iloc[opti_col].values
+        idx1      = points1_df_t["index"].iloc[opti_row].values
+        idx2      = points2_df_t["index"].iloc[opti_col].values
+        frame_col = np.full(len(distances), ti)
 
-        frame_nb = np.full(len(distances), ti)
+        results.append(np.stack([idx1, idx2, distances, frame_col], axis=1))
 
-        stack_res = np.stack([idx1,idx2,distances,frame_nb],axis=1)
-        results.append(stack_res)
+    if len(results) == 0:
+        return pd.DataFrame(columns=columns_name)
 
-    results = np.concatenate(results,axis =0)
-
-    return pd.DataFrame(results,columns=columns_name)
+    return pd.DataFrame(np.concatenate(results, axis=0), columns=columns_name)
