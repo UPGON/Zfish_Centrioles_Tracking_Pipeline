@@ -5,10 +5,12 @@ import pandas as pd
 import numpy as np
 
 
-def pairing_points(points1, points2, max_pairing_distance):
+def pairing_points(points1, points2, max_pairing_distance, diagonal_pairing=True):
     dist_matrix = scipy.spatial.distance_matrix(points1, points2)
 
     dist_mat_masked = dist_matrix.copy()
+    if not(diagonal_pairing):
+        dist_mat_masked[dist_matrix == 0] = 1e10
     dist_mat_masked[dist_matrix > max_pairing_distance] = 1e10
 
     opti_row, opti_col = scipy.optimize.linear_sum_assignment(dist_mat_masked)
@@ -17,6 +19,28 @@ def pairing_points(points1, points2, max_pairing_distance):
     valid = distances <= max_pairing_distance
     return opti_row[valid], opti_col[valid], distances[valid]
 
+def pairing_points_anisotropic(points1,points2,resolution,merging_distance, max_pairing_distance, max_z_gap = 4,diagonal_pairing=True):
+    z_coord1 = points1[:,0] / resolution[0]
+    z_coord2 = points2[:,0] / resolution[0]
+
+    dist_matrix = scipy.spatial.distance_matrix(points1, points2)
+
+    dist_mat_masked = dist_matrix.copy()
+    if not(diagonal_pairing):
+        dist_mat_masked[dist_mat_masked == 0] = 1e10
+    dist_mat_masked[dist_mat_masked > max_pairing_distance] = 1e10
+
+    opti_row, opti_col = scipy.optimize.linear_sum_assignment(dist_mat_masked)
+
+    dist_matrix_xy = scipy.spatial.distance_matrix(points1[:,1:3],points2[:,1:3])
+    distances_xy = dist_matrix_xy[opti_row,opti_col]
+    distances_z = np.abs(z_coord1-z_coord2)
+
+    valid_xy = (distances_xy <= merging_distance) & (distances_xy != 0)
+    valid_z = distances_z <= max_z_gap
+    valid = valid_xy & valid_z
+
+    return opti_row[valid], opti_col[valid]
 
 def pairing_points_df(points1_df, points2_df, max_pairing_distance,
                       columns_name=["idx1", "idx2", "dist"]):
@@ -66,8 +90,8 @@ def temporal_pairing_points_df(points1_df, points2_df, max_pairing_distance,
             points1, points2, max_pairing_distance=max_pairing_distance
         )
 
-        idx1      = points1_df_t["index"].iloc[opti_row].values
-        idx2      = points2_df_t["index"].iloc[opti_col].values
+        idx1 = points1_df_t["index"].iloc[opti_row].values
+        idx2 = points2_df_t["index"].iloc[opti_col].values
         frame_col = np.full(len(distances), ti)
 
         results.append(np.stack([idx1, idx2, distances, frame_col], axis=1))

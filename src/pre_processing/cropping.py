@@ -82,7 +82,6 @@ def crop_image(
 
     raise ValueError(f"Unsupported image format: {img_format}")
 
-
 def crop_file(
     input_path: Path,
     output_path: Path,
@@ -96,7 +95,25 @@ def crop_file(
     x_start,
     x_end,
 ):
-    img = tifffile.imread(input_path)
+    with tifffile.TiffFile(input_path) as tif:
+        img = tif.asarray()
+
+        # ImageJ metadata
+        imagej_metadata = tif.imagej_metadata or {}
+
+        # Resolution tags (pixel size stored in TIFF tags)
+        resolution    = None
+        resolutionunit = None
+        if tif.pages:
+            page = tif.pages[0]
+            x_res = page.tags.get("XResolution")
+            y_res = page.tags.get("YResolution")
+            res_unit = page.tags.get("ResolutionUnit")
+            if x_res and y_res:
+                resolution = (x_res.value, y_res.value)
+            if res_unit:
+                resolutionunit = res_unit.value
+
     cropped_img = crop_image(
         img,
         img_format,
@@ -114,12 +131,19 @@ def crop_file(
     output_file = output_path / input_path.name
     if output_file.exists():
         print(f"Warning: Output file {output_file} already exists and will be overwritten.")
-    tifffile.imwrite(output_file, cropped_img, imagej=True)
+
+    tifffile.imwrite(
+        output_file,
+        cropped_img,
+        imagej=True,
+        metadata=imagej_metadata if imagej_metadata else None,
+        resolution=resolution,
+        resolutionunit=resolutionunit,
+    )
 
 
 def crop_file_task(args):
     return crop_file(*args)
-
 
 def crop_data_set(
     input_path: Path,
@@ -188,7 +212,10 @@ def cropping(
 ):
     start = time.time()
 
-    if input_path.is_file():
+    if not input_path.exists():
+        raise ValueError("The input path doesn't exists, please check the spelling")
+
+    elif input_path.is_file():
         crop_file(
             input_path,
             output_path,

@@ -39,16 +39,19 @@ def save_results(labels, polys, input_path, output_path, channel_id, timepoint,z
     os.makedirs(output_path, exist_ok=True)
 
     # Save the annotated image
-    output_img_path = output_path / f"C{channel_id}_detection_img.tif"
+    output_img_path = output_path / f"c{channel_id}_segmentation.tif"
     tifffile.imwrite(output_img_path, labels, imagej=True, compression="zlib")
 
     # Save the blobs center coordinate
-    polys_df = pd.DataFrame(polys["points"])
-    output_coords_path = output_path / f"C{channel_id}_detected_coords.csv"
+
+    polys_df = pd.DataFrame(polys["points"], columns=["Z","Y","X"])
+    if timepoint is None:
+        polys_df["T"] = polys["timeframe"]
+    output_coords_path = output_path / f"c{channel_id}_centers.csv"
     polys_df.to_csv(output_coords_path, index_label="index")
 
     # Save the parameters used for the detection
-    output_param_path = output_path / f"C{channel_id}_params.csv"
+    output_param_path = output_path / f"c{channel_id}_params.csv"
     pd.DataFrame(
         [
             {
@@ -64,7 +67,7 @@ def save_results(labels, polys, input_path, output_path, channel_id, timepoint,z
     ).to_csv(output_param_path, index_label="index")
 
 
-def segment_frame(frame, model_path=None, proba_thresh=None, nms_thresh=None, scale=None,n_tiles=None):
+def segment_frame(frame, model_path=None, proba_thresh=None, nms_thresh=None, scale=None):
     """Segment a 3D image using the StarDist model and save the results.
     Args:
         img (numpy.ndarray): The input image to segment.
@@ -84,26 +87,16 @@ def segment_frame(frame, model_path=None, proba_thresh=None, nms_thresh=None, sc
         nms_thresh=nms_thresh,  # Remove detections overlapping by more than this threshold
         scale=scale,  # Higher values are suitable for lower resolution data
         n_tiles  =model._guess_n_tiles(frame),
-        show_tile_progress=True,
         return_labels=True,
     )
     return [labels.astype(np.uint), polys]
 
 
 def frame_segmentation_task(args):
-    frame_idx, frame, model, proba_thresh, nms_thresh, scale = args
+    frame_idx, frame, model_path, proba_thresh, nms_thresh, scale = args
     norm_frame = normalizes_frame(frame)
 
-    labels, polys =  model.predict_instances(
-        norm_frame,  # The image must be normalized
-        axes="ZYX",
-        prob_thresh=proba_thresh,  # Detection probability threshold
-        nms_thresh=nms_thresh,  # Remove detections overlapping by more than this threshold
-        scale=scale,  # Higher values are suitable for lower resolution data
-        n_tiles  =model._guess_n_tiles(norm_frame),
-        show_tile_progress=True,
-        return_labels=True,
-    )
+    labels, polys = segment_frame(norm_frame,model_path,proba_thresh,nms_thresh,scale)
     return frame_idx, labels.astype(np.uint), polys
 
 
@@ -145,12 +138,12 @@ def process_segmentation_parallel(
 
     # Prepare tasks
     tasks = [
-        (ti, vol_c[ti], model, proba_thresh, nms_thresh, scale)
+        (ti, vol_c[ti], model_path, proba_thresh, nms_thresh, scale)
         for ti in range(t)
     ]
     
     # Pre-allocate composite
-    all_labels = np.empty((t, z, 2, y, x), dtype=np.uint8)
+    all_labels = np.empty((t, z, y, x), dtype=np.uint8)
     all_polys = []
     
     # Process in parallel
@@ -168,9 +161,11 @@ def process_segmentation_parallel(
                         all_labels[frame_idx] = labels
                     
                     # Add timepoint column to blobs
-                    if polys is not None:
-                        polys["timeframe"] = np.full(len(polys), frame_idx)
-                        all_polys.update(polys)
+                    if polys is not None and len(polys["points"] > 0):
+                        all_polys.append({
+                            "points": polys["points"].copy(),
+                            "timeframe": np.full(len(polys["points"]),frame_idx)
+                        })
                     
                     pbar.update(1)
                     
@@ -180,9 +175,12 @@ def process_segmentation_parallel(
     
     # Concatenate all blobs
     if all_polys:
-        all_polys = np.concatenate(all_polys, axis=0)
+        all_polys = {
+            "points": np.concatenate([p["points"] for p  in all_polys], axis =0),
+            "timeframe": np.concatenate([p["timeframe"] for p  in all_polys], axis =0)
+        }
     else:
-        all_polys = np.array([])
+        all_polys = {}
     
     return all_labels, all_polys
 
@@ -223,6 +221,7 @@ def segmentation(input_path, output_path, channel_id, model_resolution, model_pa
 
      # Process 4D volume (no time dimension)
     if vol.ndim == 4:
+        timepoint = 0
         print("Processing single frame (4D volume)...")
         norm_img = normalizes_frame(vol[z_range, py_channel_idx])
 
@@ -251,7 +250,7 @@ def segmentation(input_path, output_path, channel_id, model_resolution, model_pa
                 max_workers=4,
             )
 
-            composite = np.stack([vol_c,vol_labels],axis=1)
+            composite = np.stack([vol_c,vol_labels],axis=2)
 
     if len(vol_polys) == 0:  # avoids error if empty
         print("No spots detected")
