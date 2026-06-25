@@ -114,16 +114,16 @@ def add_texts_4D(vol, data_df, time_col="T", text_col="idx"):
         tracking_id_mask[ti] = add_texts(tracking_id_mask[ti], tracking_id, tracking_centers, fontScale=0.4)
     return tracking_id_mask
 
-def create_texts_mask(stack,texts,centers, font=cv2.FONT_HERSHEY_COMPLEX_SMALL, text_offset = (-5,2), color = 255):
+def create_texts_mask(stack,texts,centers, fontScale=0.4,font=cv2.FONT_HERSHEY_COMPLEX_SMALL, text_offset = (-5,2), color = 255):
     mask = np.zeros(stack.shape, dtype=stack.dtype)
-    return add_texts(mask, texts, centers, font,text_offset, color)
+    return add_texts(mask, texts, centers,fontScale, font,text_offset, color)
 
-def draw_trajectories(vol, traj_data):
-    tracks_ids = traj_data["track_id"].unique()
+def draw_trajectories(vol, traj_data,track_col="track_id"):
+    tracks_ids = traj_data[track_col].unique()
 
     traj_vol = np.zeros(vol.shape, dtype = vol.dtype)
     for track_i in tracks_ids:
-        tracks_objs = traj_data.loc[traj_data["track_id"]==track_i][["T","Z","Y","X"]].values.astype(int)
+        tracks_objs = traj_data.loc[traj_data[track_col]==track_i][["T","Z","Y","X"]].values.astype(int)
 
         for i in range(0,len(tracks_objs)):
             if i == 0:

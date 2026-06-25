@@ -33,8 +33,14 @@ def stack_images(
         channel_files.sort()
         timelapse = len(channel_files)
         sample_img = tifffile.imread(channel_files[0])
-        z, y, x = sample_img.shape
-        stacked_channel = np.empty((timelapse, z, y, x), dtype=sample_img.dtype)
+        if sample_img.ndim == 2:
+            y,x = sample_img.shape
+            stacked_channel = np.empty((timelapse, y, x), dtype=sample_img.dtype)
+        elif sample_img.ndim == 3:
+            z, y, x = sample_img.shape
+            stacked_channel = np.empty((timelapse, z, y, x), dtype=sample_img.dtype)
+        else:
+            raise ValueError("Input images should be in 2D (y,x) or 3D (z,y,x)")
         
         for ti in tqdm(range(timelapse), desc=f"Stacking channel {channel_name}", unit="frame"):
             stacked_channel[ti] = tifffile.imread(channel_files[ti])
@@ -51,8 +57,14 @@ def stack_channel_images(image_files, channel_name):
 
     timelapse = len(channel_files)
     sample_img = tifffile.memmap(channel_files[0])
-    z, y, x = sample_img.shape
-    stacked_channel = np.empty((timelapse, z, y, x), dtype=sample_img.dtype)
+    if sample_img.ndim == 2:
+        y,x = sample_img.shape
+        stacked_channel = np.empty((timelapse, y, x), dtype=sample_img.dtype)
+    elif sample_img.ndim == 3:
+        z, y, x = sample_img.shape
+        stacked_channel = np.empty((timelapse, z, y, x), dtype=sample_img.dtype)
+    else:
+        raise ValueError("Input images should be in 2D (y,x) or 3D (z,y,x)")
     
     for ti in range(timelapse):
         stacked_channel[ti] = tifffile.imread(channel_files[ti])
@@ -107,7 +119,8 @@ def stack_channels_images(
                 print(f"Error processing {channel_name}: {exc}")
 
     if stacked_channels:
-        stacked_vol = np.stack([stacked_channels[channel_name] for channel_name in channel_names], axis=2)
+        stacking_axis = 2 if stacked_channels[channel_names[0]].ndim == 4 else 1
+        stacked_vol = np.stack([stacked_channels[channel_name] for channel_name in channel_names], axis=stacking_axis)
     else:
         stacked_vol = np.array([])
 
@@ -140,8 +153,9 @@ def stacking(
         output_path,
         stacked_vol,
         imagej=True,
-        metadata={"axes": "TZCYX"},
+        metadata={"axes": "TZCYX" if stacked_vol.ndim == 5 else "TCYX"},
         compression = "zlib",
+        bigtiff=True,
     )
 
     print("Successfully stacked images")

@@ -77,6 +77,15 @@ def get_window_range(window_size, point, size):
 
     return tuple(window_range)
 
+def get_windowed_coord(window_size,point,size):
+    new_point = point.copy()
+    for i in range(len(point)):
+        coord = point[i].astype(int)        
+        idx_min, idx_max = clamping_window_size(window_size, coord, size[i])
+        new_point[i] -= idx_min
+
+    return new_point
+
 def get_pixel_size(vol_path):
     """
     Return the images pixel size in [px/um]

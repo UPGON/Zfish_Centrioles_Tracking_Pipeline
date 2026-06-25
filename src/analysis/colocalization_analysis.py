@@ -22,7 +22,7 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from utils import utils
-from pairing import pairing
+from pairing import centers_pairing
 from visualization import visualization
 from visualization import plots
 
@@ -108,46 +108,16 @@ def save_annotated_pairing_detection(output_path, vol1, vol2,vol_bf, centers1_df
         compression='zlib'
     )
 
-def get_intensity_at_centers(stack, centers_df):
-    centers = centers_df[["Z", "Y", "X"]].values.astype(int)
-    intensities = np.empty(len(centers), dtype=stack.dtype)
-
-    for i, center in enumerate(centers):
-        z, y, x = center
-        intensities[i] = stack[z, y, x]
-
-    return intensities
-
-def get_diameter_at_centers(stack, centers_df,resolution):
-    centers = centers_df[["Z", "Y", "X"]].values
-    areas = np.empty(len(centers), dtype=np.float32)
-
-    yen_stack = np.empty_like(stack)
-    for z in np.unique(centers[:, 0]).astype(int):
-        yen_stack[z] = stack[z] > threshold_yen(stack[z])
-
-    for i, center in enumerate(centers):
-        z, y, x = center.astype(int)
-        yen_img = yen_stack[z]
-        yen_labels, nshapes = label(yen_img, return_num=True)
-        areas[i] = ndimage.sum(yen_img, labels=yen_labels, index=yen_labels[y, x])
-
-        areas[i] = areas[i] * (resolution[-1] ** 2)  # Convert area from pixels to µm²
-        areas[i] = np.sqrt(areas[i] / np.pi) *2
-
-    return areas
-    
-
 def plot_areas_comparison(output_path,  paired_centers1_df,paired_centers2_df,unpaired_centers1_df,unpaired_centers2_df, channel1_name, channel2_name):
-    if "area" not in paired_centers1_df.columns or "area" not in paired_centers1_df.columns:
+    if "Area_um" not in paired_centers1_df.columns or "Area_um" not in paired_centers2_df.columns:
         print("Area data not found in centers DataFrames: can't create area comparison plot")
         return
 
-    paired_areas1 = paired_centers1_df["area"].values
-    paired_areas2 = paired_centers2_df["area"].values
+    paired_areas1 = paired_centers1_df["Area_um"].values
+    paired_areas2 = paired_centers2_df["Area_um"].values
 
-    unpaired_areas1 = unpaired_centers1_df["area"].values
-    unpaired_areas2 = unpaired_centers2_df["area"].values
+    unpaired_areas1 = unpaired_centers1_df["Area_um"].values
+    unpaired_areas2 = unpaired_centers2_df["Area_um"].values
 
     plots.plot_comparison_box_plot(
         values = [paired_areas1, unpaired_areas1, paired_areas2, unpaired_areas2],
@@ -155,22 +125,45 @@ def plot_areas_comparison(output_path,  paired_centers1_df,paired_centers2_df,un
         linestyle = ["-", "--", "-", "--"],
         legends = {"paired": "-", "unpaired": "--"},
         title="Comparison of areas at detected foci",
-        unit="Area [px]",
+        unit="Area [um]",
         colors =['forestgreen', 'darkseagreen','darkslateblue', 'mediumpurple'],
         output_path=output_path / "area_comparison_plot",
         show=False
     )
 
+def plot_radius_comparison(output_path,  paired_centers1_df,paired_centers2_df,unpaired_centers1_df,unpaired_centers2_df, channel1_name, channel2_name):
+    if "Rum" not in paired_centers1_df.columns or "Rum" not in paired_centers2_df.columns:
+        print("Area data not found in centers DataFrames: can't create area comparison plot")
+        return
+
+    paired_areas1 = paired_centers1_df["Rum"].values
+    paired_areas2 = paired_centers2_df["Rum"].values
+
+    unpaired_areas1 = unpaired_centers1_df["Rum"].values
+    unpaired_areas2 = unpaired_centers2_df["Rum"].values
+
+    plots.plot_comparison_box_plot(
+        values = [paired_areas1, unpaired_areas1, paired_areas2, unpaired_areas2],
+        labels = [channel1_name,channel1_name, channel2_name,channel2_name],
+        linestyle = ["-", "--", "-", "--"],
+        legends = {"paired": "-", "unpaired": "--"},
+        title="Comparison of radius at detected foci",
+        unit="Radius [um]",
+        colors =['forestgreen', 'darkseagreen','darkslateblue', 'mediumpurple'],
+        output_path=output_path / "radius_comparison_plot",
+        show=False
+    )
+
 def plot_intensity_comparison(output_path,  paired_centers1_df,paired_centers2_df,unpaired_centers1_df,unpaired_centers2_df, channel1_name, channel2_name):
-    if "intensity" not in paired_centers1_df.columns or "intensity" not in paired_centers1_df.columns:
+    if "Intensity" not in paired_centers1_df.columns or "Intensity" not in paired_centers2_df.columns:
         print("Intensity data not found in centers DataFrames: can't create intensity comparison plot")
         return
 
-    paired_intensities1 = paired_centers1_df["intensity"].values
-    paired_intensities2 = paired_centers2_df["intensity"].values
+    paired_intensities1 = paired_centers1_df["Intensity"].values
+    paired_intensities2 = paired_centers2_df["Intensity"].values
 
-    unpaired_intensities1 = unpaired_centers1_df["intensity"].values
-    unpaired_intensities2 = unpaired_centers2_df["intensity"].values
+    unpaired_intensities1 = unpaired_centers1_df["Intensity"].values
+    unpaired_intensities2 = unpaired_centers2_df["Intensity"].values
 
     plots.plot_comparison_box_plot(
         values = [paired_intensities1, unpaired_intensities1, paired_intensities2, unpaired_intensities2],
@@ -229,11 +222,22 @@ def plot_colocalization_proportion(output_path, paired_centers1_df, centers1_df,
         show=False
     )
 
+def plot_z_diff_histogram(output_path_plots, paired_centers1_df, paired_centers2_df):
+    z_diff = paired_centers1_df["Zum"].values - paired_centers2_df["Zum"].values
+    fig, ax = plt.subplots(figsize=(6, 4))
+    ax.hist(z_diff,bins=100)
+    ax.set_title("Foci distance to nearest nuclei border")
+    ax.set_xlabel("Distance [um]")
+    ax.set_ylabel("Frequency")
+    ax.legend([f"Mean {z_diff.mean():.1f}"], loc="upper right")
+    fig.tight_layout()
+    fig.savefig(output_path_plots / "diff_z_distance_plot.png", dpi=300)
+    plt.close(fig)
 
-def save_figures(output_path, pairing_df, vol1, vol2,vol_bf,
+def save_images(output_path, pairing_df, vol1, vol2,vol_bf,
                  centers1_df, centers2_df,
                  paired_centers1_df, paired_centers2_df):
-    print("Saving figures...")
+    print("Saving Images...")
     output_path_img = output_path / "images"
     os.makedirs(output_path_img, exist_ok=True)
 
@@ -242,26 +246,34 @@ def save_figures(output_path, pairing_df, vol1, vol2,vol_bf,
     save_annotated_pairing_detection(output_path_img, vol1, vol2,vol_bf,
                                      centers1_df, centers2_df,
                                      paired_centers1_df, paired_centers2_df)
-    pairing_df.to_csv(output_path / "pairing_results.csv", index=False)
 
 
 def save_plots(output_path, unrestricted_pairing_df,
                paired_centers1_df, paired_centers2_df,
                 unpaired_centers1_df,unpaired_centers2_df,
                centers1_df, centers2_df,
-               channel1_name, channel2_name, max_pairing_distance):
+               channel1_name, channel2_name, max_pairing_distance_xy, max_pairing_distance_z):
     print("Saving plots...")
     output_path_plots = output_path / "plots"
     os.makedirs(output_path_plots, exist_ok=True)
 
     if len(unrestricted_pairing_df) > 0:
         plots.plot_zoomed_histogram(
-            unrestricted_pairing_df["dist"],
-            zooming_threshold=max_pairing_distance * 3,
-            threshold=max_pairing_distance,
+            unrestricted_pairing_df["dist_xy"],
+            zooming_threshold=max_pairing_distance_xy * 1.1,
+            threshold=max_pairing_distance_xy,
             title="Nearest neighbor distances",
             unit="Distance [µm]",
-            output_path=output_path_plots / "pairing_distance_plot",
+            output_path=output_path_plots / "pairing_distance_xy_plot",
+            show=False
+        )
+        plots.plot_zoomed_histogram(
+            unrestricted_pairing_df["dist_z"],
+            zooming_threshold=max_pairing_distance_z * 1.1,
+            threshold=max_pairing_distance_z,
+            title="Nearest neighbor distances",
+            unit="Distance [µm]",
+            output_path=output_path_plots / "pairing_distance_z_plot",
             show=False
         )
 
@@ -274,53 +286,77 @@ def save_plots(output_path, unrestricted_pairing_df,
     plot_number_foci(output_path_plots, centers1_df, centers2_df,
                               channel1_name, channel2_name)
     plot_areas_comparison(output_path_plots, paired_centers1_df,paired_centers2_df,unpaired_centers1_df,unpaired_centers2_df, channel1_name, channel2_name)
+    plot_radius_comparison(output_path_plots, paired_centers1_df,paired_centers2_df,unpaired_centers1_df,unpaired_centers2_df, channel1_name, channel2_name)
+
     plot_intensity_comparison(output_path_plots, paired_centers1_df,paired_centers2_df,unpaired_centers1_df,unpaired_centers2_df, channel1_name, channel2_name)
+    plot_z_diff_histogram(output_path_plots, paired_centers1_df, paired_centers2_df)
 
+def save_statistics(output_path,centers1,centers2, pairing_df,paired_centers1_df,paired_centers2_df,unpaired_centers1_df,unpaired_centers2_df, max_pairing_distance_xy, max_pairing_distance_z):
+    pairing_df[["Z", "Y", "X"]] = (
+        (paired_centers1_df[["Z", "Y", "X"]].values +
+         paired_centers2_df[["Z", "Y", "X"]].values) / 2.0
+    )
 
-def save_statistics(output_path,centers1,centers2, pairing_df,paired_centers1_df,paired_centers2_df, max_pairing_distance):
+    pairing_df.to_csv(output_path / "pairing_results.csv", index=False)
+
+    z_diff = paired_centers1_df["Zum"].values - paired_centers2_df["Zum"].values
+
     pd.DataFrame([{
-        "pairs": len(pairing_df["dist"]),
+        "pairs": len(pairing_df.index),
         "ratio ct/cs": len(centers1.index)/len(centers2.index),
         "nb_of_paired_centers1": len(paired_centers1_df.index),
         "nb_of_paired_centers2": len(paired_centers2_df.index),
         "proportion_of_paired_centers1": (len(paired_centers1_df.index)/len(centers1.index)),
         "proportion_of_paired_centers2": (len(paired_centers2_df.index)/len(centers2.index)),
-        "max_pairing_distance": max_pairing_distance,
-        "mean_distance":   pairing_df["dist"].mean(),
-        "median_distance": pairing_df["dist"].median(),
-        "min_distance":    pairing_df["dist"].min(),
-        "max_distance":    pairing_df["dist"].max(),
+        "max_pairing_distance_xy": max_pairing_distance_xy,
+        "max_pairing_distance_z": max_pairing_distance_z,
     }]).to_csv(output_path / "statistics.csv", index_label="index")
+
+    pd.DataFrame([{
+        "mean_paired_radius1": paired_centers1_df["Rum"].mean(),
+        "mean_unpaired_radius1": unpaired_centers1_df["Rum"].mean(),
+        "mean_paired_radius2": paired_centers2_df["Rum"].mean(),
+        "mean_unpaired_radius2": unpaired_centers2_df["Rum"].mean(),
+        "mean_paired_intensity1": paired_centers1_df["Intensity"].mean(),
+        "mean_unpaired_intensity1": unpaired_centers1_df["Intensity"].mean(),
+        "mean_paired_intensity2": paired_centers2_df["Intensity"].mean(),
+        "mean_unpaired_intensity2": unpaired_centers2_df["Intensity"].mean(),
+        "mean_z_diff": z_diff.mean(),
+        "meadian_z_diff": np.median(z_diff),
+    }]).to_csv(output_path / "features.csv", index_label="index")
 
 
 def save_results(output_path, vol1, vol2,vol_bf, pairing_df, unrestricted_pairing_df,
-                 centers1_df, centers2_df, max_pairing_distance,
+                 centers1_df, centers2_df, max_pairing_distance_xy, max_pairing_distance_z,
                  channel1_name, channel2_name):
+    if len(pairing_df) == 0:
+        print("No pairs found within distance threshold: skipping saving results!")
+        return
 
-    if len(pairing_df) > 0:
-        paired_centers1_df = centers1_df.loc[pairing_df["idx1"].values].reset_index(drop=True)
-        paired_centers2_df = centers2_df.loc[pairing_df["idx2"].values].reset_index(drop=True)
-        unpaired_centers1_df = centers1_df.drop(pairing_df["idx1"].values).reset_index(drop=True)
-        unpaired_centers2_df = centers2_df.drop(pairing_df["idx2"].values).reset_index(drop=True)
-
-    else:
-        print("No pairs found within distance threshold!")
-        paired_centers1_df = pd.DataFrame(columns=centers1_df.columns)
-        paired_centers2_df = pd.DataFrame(columns=centers2_df.columns)
+    idx1 = pairing_df["idx1"].values   
+    idx2 = pairing_df["idx2"].values
+    
+    paired_centers1_df = centers1_df.iloc[list(idx1)].reset_index(drop=True)
+    paired_centers2_df = centers2_df.iloc[list(idx2)].reset_index(drop=True)
+    
+    unpaired_mask1 = ~centers1_df.index.isin(idx1)
+    unpaired_mask2 = ~centers2_df.index.isin(idx2)
+    unpaired_centers1_df = centers1_df[unpaired_mask1].reset_index(drop=True)
+    unpaired_centers2_df = centers2_df[unpaired_mask2].reset_index(drop=True)
 
     os.makedirs(output_path, exist_ok=True)
 
-    save_figures(output_path, pairing_df, vol1, vol2,vol_bf,
+    save_images(output_path, pairing_df, vol1, vol2,vol_bf,
                  centers1_df, centers2_df,
                  paired_centers1_df, paired_centers2_df)
     save_plots(output_path, unrestricted_pairing_df,
                paired_centers1_df, paired_centers2_df,
                 unpaired_centers1_df,unpaired_centers2_df,
                centers1_df, centers2_df,
-               channel1_name, channel2_name, max_pairing_distance)
+               channel1_name, channel2_name, max_pairing_distance_xy, max_pairing_distance_z)
     save_statistics(output_path, centers1_df,centers2_df, pairing_df,
-                    paired_centers1_df,paired_centers2_df, 
-                    max_pairing_distance)
+                    paired_centers1_df,paired_centers2_df, unpaired_centers1_df,unpaired_centers2_df,
+                    max_pairing_distance_xy, max_pairing_distance_z)
 
 
 def get_volumes(vol,channel1_id,channel2_id ):
@@ -336,18 +372,18 @@ def get_volumes(vol,channel1_id,channel2_id ):
 
     return vol1,vol2,vol_bf
 
-def pairing_centers(vol, centers1_df, centers2_df, max_pairing_distance):
+def pairing_centers(vol, centers1_df, centers2_df, max_pairing_distance_xy,max_pairing_distance_z):
     z, c, y, x = vol.shape[-4:]
 
     if vol.ndim == 4:
         print("Processing single frame (4D volume)...")
-        unrestricted_pairing_df = pairing.pairing_points_df(centers1_df, centers2_df, 1e10)
-        pairing_df              = pairing.pairing_points_df(centers1_df, centers2_df, max_pairing_distance)
+        unrestricted_pairing_df = centers_pairing.pairing_points_df_anisotropic(centers1_df, centers2_df, 1e10,1e10)
+        pairing_df              = centers_pairing.pairing_points_df_anisotropic(centers1_df, centers2_df, max_pairing_distance_xy,max_pairing_distance_z)
 
     elif vol.ndim == 5:
         print(f"Processing {vol.shape[0]} frames (5D volume)...")
-        unrestricted_pairing_df = pairing.temporal_pairing_points_df(centers1_df, centers2_df, 1e10)
-        pairing_df              = pairing.temporal_pairing_points_df(centers1_df, centers2_df, max_pairing_distance)
+        unrestricted_pairing_df = centers_pairing.temporal_pairing_points_df_anisotropic(centers1_df, centers2_df, 1e10,1e10)
+        pairing_df              = centers_pairing.temporal_pairing_points_df_anisotropic(centers1_df, centers2_df, max_pairing_distance_xy,max_pairing_distance_z)
     else:
         raise ValueError(f"Volume must be 4D or 5D, got shape {vol.shape}")
 
@@ -355,7 +391,7 @@ def pairing_centers(vol, centers1_df, centers2_df, max_pairing_distance):
 
 
 def colocalization_analysis(vol_path, centers1_path, centers2_path, output_path,
-                             channel1_id, channel2_id, max_pairing_distance,
+                             channel1_id, channel2_id, max_pairing_distance_xy, max_pairing_distance_z,
                              channel1_name, channel2_name):
     start_time = time.time()
 
@@ -385,19 +421,20 @@ def colocalization_analysis(vol_path, centers1_path, centers2_path, output_path,
     centers1_df[["Zum", "Yum", "Xum"]] = centers1_df[["Z", "Y", "X"]] * resolution
     centers2_df[["Zum", "Yum", "Xum"]] = centers2_df[["Z", "Y", "X"]] * resolution
 
+    centers1_df["Area_um"] = centers1_df["Area"] * resolution[1]
+    centers2_df["Area_um"] = centers2_df["Area"] * resolution[1]
+
+    centers1_df["Rum"] = np.sqrt(centers1_df["Area"]/np.pi) * resolution[1]
+    centers2_df["Rum"] = np.sqrt(centers2_df["Area"]/np.pi) * resolution[1]
+
     pairing_df, unrestricted_pairing_df = pairing_centers(
-        vol, centers1_df, centers2_df, max_pairing_distance
+        vol, centers1_df, centers2_df, max_pairing_distance_xy, max_pairing_distance_z,
     )
 
     vol1,vol2,vol_bf = get_volumes(vol, py_channel1_id, py_channel2_id)
 
-    centers1_df["intensity"] = get_intensity_at_centers(vol1, centers1_df)
-    centers2_df["intensity"] = get_intensity_at_centers(vol2, centers2_df)
-    centers1_df["area"] = get_diameter_at_centers(vol1, centers1_df,resolution)
-    centers2_df["area"] = get_diameter_at_centers(vol2, centers2_df,resolution)
-
     save_results(output_path, vol1, vol2,vol_bf, pairing_df, unrestricted_pairing_df,
-                 centers1_df, centers2_df, max_pairing_distance,
+                 centers1_df, centers2_df, max_pairing_distance_xy, max_pairing_distance_z,
                  channel1_name, channel2_name)
 
     print(f"Colocalization analysis complete — took {time.time() - start_time:.2f}s")
@@ -414,7 +451,8 @@ def _build_arg_parser():
     parser.add_argument("--output_path",           required=True,  type=pathlib.Path)
     parser.add_argument("--channel1_id",           required=True,  type=int)
     parser.add_argument("--channel2_id",           required=True,  type=int)
-    parser.add_argument("--max_pairing_distance",  required=True,  type=float)
+    parser.add_argument("--max_pairing_distance_xy",  required=True,  type=float)
+    parser.add_argument("--max_pairing_distance_z",  required=True,  type=float)
     parser.add_argument("--channel1_name",         type=str, default="Cetn2Eos")
     parser.add_argument("--channel2_name",         type=str, default="CenSpark")
     return parser
@@ -426,7 +464,7 @@ if __name__ == "__main__":
         colocalization_analysis(
             args.vol_path, args.centers1_path, args.centers2_path,
             args.output_path, args.channel1_id, args.channel2_id,
-            args.max_pairing_distance, args.channel1_name, args.channel2_name
+            args.max_pairing_distance_xy,args.max_pairing_distance_z, args.channel1_name, args.channel2_name
         )
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)

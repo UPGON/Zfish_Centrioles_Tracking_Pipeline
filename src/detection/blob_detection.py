@@ -20,7 +20,6 @@ import traceback
 from skimage.exposure import match_histograms
 from skimage.transform import rescale
 from scipy.spatial import distance_matrix
-from scipy.optimize import linear_sum_assignment
 from scipy.spatial import cKDTree
 
 
@@ -29,44 +28,100 @@ sys.path.insert(0, str(project_root))
 
 from visualization import visualization
 from utils import utils
-from pairing import pairing
+import constants
 
+def merging_centers(dict_centers, merging_distance, resolution):
+    """Merge nearby centers within merging_distance.it se
+    
+    Args:
+        dict_centers: Dict with 'coords' (N,3) and 'areas' (N,)
+        merging_distance: Distance threshold in microns
+        resolution: Voxel size [dz, dy, dx]
+    
+    Returns:
+        Tuple of (merged_dict_centers, nb_merged_centers)
+    """
+    coords = dict_centers["coords"].copy()
+    areas = dict_centers["areas"].copy()
+    intensities = dict_centers["intensities"].copy()
+    if len(coords)!= len(areas) or len(coords) != len(intensities):
+        raise ValueError("All mesure features should have the same size")
 
-def merging_centers(blob_centers,merging_distance, resolution):
-    new_centers = blob_centers
-    centers_um = blob_centers[:, :3] * resolution
+    temporal_data = "T" in dict_centers.keys()
+    if temporal_data:
+        frames = dict_centers["T"].copy()
+    
+    nb_original = len(coords)
     merged = True
+    
     while merged:
         merged = False
+        centers_um = coords * resolution
         tree = cKDTree(centers_um)
         
         # Find all pairs within merging_distance
-        pairs = tree.query_pairs(r=merging_distance, output_type='ndarray')  # shape (M, 2)
+        pairs = tree.query_pairs(r=merging_distance, output_type='ndarray')
         
         if len(pairs) == 0:
             break
         
-        unmerged = np.zeros(len(centers_um), dtype=bool)
-        merge_map = {}  # idx -> merged result
+        unmerged_mask = np.ones(len(coords), dtype=bool)
+        new_coords_list = []
+        new_areas_list = []
+        new_intensities_list = []
+        if temporal_data:
+            new_frames_list = []
 
         for i, j in pairs:
-            if unmerged[i] or unmerged[j]:
+            if not unmerged_mask[i] or not unmerged_mask[j]:
                 continue
+            
             # Merge i and j
-            merge_map[i] = (new_centers[i] + new_centers[j]) / 2
-            unmerged[i] = True
-            unmerged[j] = True
+            merged_coords = (coords[i] + coords[j]) / 2
+            merged_area = areas[i] + areas[j] if areas[i]!= areas[j] else areas[i]
+            merged_intensities = (intensities[i] + intensities[j])/2
+            if temporal_data:
+                merged_frames = (frames[i] + frames[j]) // 2
+
+            new_coords_list.append(merged_coords)
+            new_areas_list.append(merged_area)
+            new_intensities_list.append(merged_intensities)
+            if temporal_data:
+                new_frames_list.append(merged_frames)
+            
+            unmerged_mask[i] = False
+            unmerged_mask[j] = False
             merged = True
-
+        
         # Keep unmerged spots + new merged spots
-        unmerged_centers = new_centers[~unmerged]
-        new_merged = np.array(list(merge_map.values()))
-        new_centers = np.concatenate([unmerged_centers, new_merged]) if len(new_merged) > 0 else unmerged_centers
-        centers_um = new_centers[:, :3] * resolution
+        unmerged_coords = coords[unmerged_mask]
+        unmerged_areas = areas[unmerged_mask]
+        unmerged_intensities = intensities[unmerged_mask]
+        if temporal_data:
+            unmerged_frames = frames[unmerged_mask]
+        
+        if new_coords_list:
+            coords = np.vstack([unmerged_coords, np.array(new_coords_list)])
+            areas = np.concatenate([unmerged_areas, np.array(new_areas_list)])
+            intensities = np.concatenate([unmerged_intensities, np.array(new_intensities_list)])
+            if temporal_data:
+                frames = np.concatenate([unmerged_frames, np.array([new_frames_list])])
 
-    nb_merged_centers = len(blob_centers) - len(new_centers)
+        else:
+            coords = unmerged_coords
+            areas = unmerged_areas
+            intensities  = unmerged_intensities
+            if temporal_data:
+                frames = unmerged_frames
+    
+    nb_merged_centers = nb_original - len(coords)
 
-    return new_centers, nb_merged_centers
+    if temporal_data:
+        new_dict_centers = {"coords": coords, "T": frames, "areas": areas, "intensities": intensities}
+    else:
+        new_dict_centers = {"coords": coords, "areas": areas, "intensities": intensities}
+    
+    return new_dict_centers , nb_merged_centers
 
 def apply_detection_algorithm(img, algorithm, min_sigma, max_sigma, threshold):
     """Apply blob detection algorithm.
@@ -90,25 +145,6 @@ def apply_detection_algorithm(img, algorithm, min_sigma, max_sigma, threshold):
         img, min_sigma=min_sigma, max_sigma=max_sigma, threshold=threshold
     )
 
-def remove_large_area_element(frame, blob_center, area_max):
-    keep_mask = np.ones(len(blob_center), dtype=bool)
-
-    for z in np.unique(blob_center[:, 0]).astype(int):
-        thresh_yen = threshold_yen(frame[z])
-        large_obj = remove_small_objects(frame[z] > thresh_yen, min_size=area_max)
-
-        z_mask = blob_center[:, 0] == z
-        ys = blob_center[z_mask, 1].astype(int)
-        xs = blob_center[z_mask, 2].astype(int)
-
-        # Clip to valid bounds
-        valid = (ys >= 0) & (ys < frame.shape[1]) & (xs >= 0) & (xs < frame.shape[2])
-        in_large = np.zeros(z_mask.sum(), dtype=bool)
-        in_large[valid] = large_obj[ys[valid], xs[valid]]
-
-        keep_mask[z_mask] = ~in_large
-
-    return blob_center[keep_mask]
 
 def normalize_to_reference(stack, ref_t=0):
     """
@@ -138,12 +174,12 @@ def frame_composite_creation(frame,frame_bf,blobs_centers,annotation, max_radius
     if len(blobs_centers)==0:
         return
     if max_radius is None:  
-        max_radius = (blobs_centers[:, -1].max()) * 1.5
-    circle_mask = visualization.create_circle_mask(blobs_centers[:, :3], frame, radius = [max_radius])
+        max_radius = (np.sqrt(blobs_centers["areas"].max() / np.pi)) * 1.5
+    circle_mask = visualization.create_circle_mask(blobs_centers["coords"][:, :3], frame, radius = [max_radius])
    
     if annotation:
         mask = np.zeros(frame.shape, dtype=frame.dtype)
-        annotation_mask = visualization.add_texts(mask, texts=np.arange(len(blobs_centers)).astype(str), coords=blobs_centers[:, :3])
+        annotation_mask = visualization.add_texts(mask, texts=np.arange(len(blobs_centers["coords"])).astype(str), coords=blobs_centers["coords"][:, :3])
         composite = np.stack([frame, circle_mask,annotation_mask,frame_bf], axis=1)
 
     else:
@@ -220,44 +256,130 @@ def paralell_composite_creation(
     
     return composite
 
-def frame_blob_detection(frame, algorithm, threshold, min_sigma=1, max_sigma=5, area_max=None):
-    """Wrapper for parallel frame processing.
+def remove_out_of_field(centers,frame, gap_limit =1):
+    z,y,x = frame.shape
+    valid_mask = [center[1] > gap_limit and center[1] < (y-gap_limit) and center[2] > gap_limit and center[2] < (x-gap_limit) for center in centers]
+    return centers[valid_mask]
+
+def remove_out_of_border(dict_centers, frame, window_size=40, zero_frac_thresh=0.2):
+    """Remove centers adjacent to large black background borders.
+
+    Args:
+        dict_centers: Dict with keys 'coords' (N,3), 'areas' (N,), 'intensities' (N,), and optional 'T'
+        frame: 3D image (Z, Y, X)
+        window_size: Size of window around each center
+        zero_frac_thresh: Threshold for fraction of zero pixels in window
+
+    Returns:
+        Filtered dict_centers with same structure but only valid centers.
+    """
+    if len(dict_centers["coords"]) == 0:
+        return dict_centers
+
+    coords = dict_centers["coords"]
+    areas = dict_centers["areas"]
+    intensities = dict_centers["intensities"]
+    has_temporal = "T" in dict_centers
+    if has_temporal:
+        frames = dict_centers["T"]
+
+    valid_mask = []
+
+    for center in coords:
+        cz, cy, cx = int(center[0]), int(center[1]), int(center[2])
+
+        window_range = utils.get_window_range(window_size, center, frame.shape)
+        window = frame[cz][window_range[1:3]]
+
+        zero_frac = np.mean(window == 0)
+
+        # If too many pixels are zero, consider it touching a black crop border
+        if zero_frac > zero_frac_thresh:
+            valid_mask.append(False)
+        else:
+            valid_mask.append(True)
+
+    valid_mask = np.array(valid_mask)
+    
+    # Build filtered dict
+    filtered_dict = {
+        "coords": coords[valid_mask],
+        "areas": areas[valid_mask],
+        "intensities": intensities[valid_mask],
+    }
+    if has_temporal:
+        filtered_dict["T"] = frames[valid_mask]
+
+    return filtered_dict
+
+def measure_features(centers,frame, window_size = 40):
+    areas = np.empty(len(centers))
+    intensities = np.empty(len(centers))
+
+    for i,center in enumerate(centers):
+        z,y,x = center.astype(int)
+        window_range = utils.get_window_range(window_size, [y,x], frame.shape[1:3])
+        wz,wy,wx = utils.get_windowed_coord(window_size, center,frame.shape).astype(int)
+
+        img = frame[z][window_range]
+        gaussian_img = ndimage.gaussian_filter(img,sigma=1)
+        yen_img = gaussian_img > threshold_yen(gaussian_img)
+
+        yen_labels = label(yen_img)
+        areas[i] = ndimage.sum(yen_img, labels=yen_labels, index=yen_labels[wy,wx])
+        intensities[i] = gaussian_img[wy,wx]
+
+    return areas, intensities
+
+
+def frame_blob_detection(frame, algorithm, threshold, min_sigma=1, max_sigma=5, window_size=40, area_max=None):
+    """Detect blobs in a single frame.
     
     Args:
-        args: Tuple of (frame_idx, frame, algorithm, threshold, min_sigma, max_sigma, area_max)
+        frame: 3D image (Z, Y, X)
+        algorithm: 'dog' or 'log'
+        threshold: Detection threshold
+        min_sigma: Minimum sigma
+        max_sigma: Maximum sigma
+        area_max: Maximum area threshold
     
     Returns:
-        Tuple of (frame_idx, blobs_coords, composite)
-
+        Dict with 'coords' (N,3) and 'areas' (N,)
     """
     # Detect blobs
     blobs_center = apply_detection_algorithm(
         frame, algorithm, min_sigma, max_sigma, threshold
-    )
+    )[:,:-1] # We don't want the estimated radius by the algo, we'll rather compute our own estimation
 
-    # Filter by area
-    if area_max:
-        blobs_center = remove_large_area_element(frame, blobs_center, area_max)
+    blobs_center = remove_out_of_field(blobs_center, frame)
 
-    # Convert sigma to radius
-    blobs_center[:, -1] = blobs_center[:, -1] * np.sqrt(3)
-        
-    return blobs_center
+    areas, intensities = measure_features(blobs_center, frame,window_size)
+
+    # Filter by area if specified
+    if area_max is not None:
+        valid_mask = areas <= area_max
+        blobs_center = blobs_center[valid_mask]
+        areas = areas[valid_mask]
+        intensities = intensities[valid_mask]
+
+    dict_centers = {"coords": blobs_center, "areas": areas,"intensities":intensities}
+  
+    return dict_centers
         
 
 def frame_blob_detection_task(args):
-    frame_idx, frame, algorithm, threshold, min_sigma, max_sigma, area_max = args
-    blobs_center = frame_blob_detection(frame, algorithm, threshold, min_sigma, max_sigma, area_max)
+    frame_idx, frame, algorithm, threshold, min_sigma, max_sigma,window_size, area_max = args
+    blobs_center = frame_blob_detection(frame, algorithm, threshold, min_sigma,window_size, max_sigma, area_max)
     return frame_idx, blobs_center
 
 
-def paralell_blob_detection(vol_c, algorithm, threshold, min_sigma, max_sigma, area_max, max_workers=None):
+def paralell_blob_detection(vol_c, algorithm, threshold, min_sigma, max_sigma,window_size, area_max, max_workers=None):
     t = vol_c.shape[0]
     if max_workers is None:
         max_workers = min(multiprocessing.cpu_count() - 1, t)
 
     tasks = [
-        (ti, vol_c[ti], algorithm, threshold, min_sigma, max_sigma, area_max)
+        (ti, vol_c[ti], algorithm, threshold, min_sigma, max_sigma,window_size, area_max)
         for ti in range(t)
     ]
 
@@ -269,13 +391,24 @@ def paralell_blob_detection(vol_c, algorithm, threshold, min_sigma, max_sigma, a
         ))
 
     for frame_idx, blobs_coords in results:
-        if len(blobs_coords) > 0:
-            all_blobs_coords = np.concatenate([
-                np.column_stack([np.full(len(b), ti), b])
-                for ti, b in results if len(b) > 0
-            ], axis=0)
+        if len(blobs_coords["coords"]) > 0:
+            all_blobs_coords.append({
+                "coords":    blobs_coords["coords"],
+                "areas":     blobs_coords["areas"],
+                "intensities": blobs_coords["intensities"],
+                "T":         np.full(len(blobs_coords["coords"]), frame_idx),
+            })
 
-    return np.concatenate(all_blobs_coords, axis=0) if all_blobs_coords else np.array([])
+    if all_blobs_coords:
+        return {
+            "coords": np.concatenate([b["coords"] for b in all_blobs_coords], axis=0),
+            "areas": np.concatenate([b["areas"] for b in all_blobs_coords], axis=0),
+            "intensities": np.concatenate([b["intensities"] for b in all_blobs_coords], axis=0),
+            "T": np.concatenate([b["T"] for b in all_blobs_coords], axis=0),
+        }
+    else:
+        return {"coords": np.array([]).reshape(0, 3), "areas": np.array([]),"intensities":np.array([]), "T": np.array([])}
+
 
 
 def save_results(
@@ -313,11 +446,21 @@ def save_results(
 
     # Save coordinates
     output_coords_path = output_path / f"c{channel_id}_centers.csv"
-    columns_name = (
-        ["T", "Z", "Y", "X", "R"] if timepoint is None else ["Z", "Y", "X", "R"]
-    )
-
-    blob_coord_df = pd.DataFrame(blobs_coords, columns=columns_name)
+    
+    # Extract data from dict_centers
+    coords = blobs_coords["coords"]
+    areas = blobs_coords["areas"]
+    intensities = blobs_coords["intensities"]
+    
+    # Build output array based on timepoint
+    if "T" in blobs_coords:
+        output_data = np.column_stack([blobs_coords["T"], coords, areas, intensities])
+        columns_name = ["T", "Z", "Y", "X", "Area","Intensity"]
+    else:
+        output_data = np.column_stack([coords, areas, intensities])
+        columns_name = ["Z", "Y", "X", "Area","Intensity"]
+    
+    blob_coord_df = pd.DataFrame(output_data, columns=columns_name)
     
     #For now it's always false, let's see in the future if I want to make it a parameter
     convert_to_micron = False
@@ -326,7 +469,7 @@ def save_results(
         blob_coord_df[["Zum", "Yum", "Xum"]] = (
             blob_coord_df[["Z", "Y", "X"]] * resolution
         )
-        blob_coord_df["Rum"] = blob_coord_df["R"] * np.mean(resolution[1:])
+        blob_coord_df["Area_um2"] = blob_coord_df["Area"] * (resolution[1] * resolution[2])
 
     blob_coord_df.to_csv(output_coords_path, index_label="index")
 
@@ -398,7 +541,9 @@ def blob_detection(
     # Convert area_max from microns² to pixels²
     area_max_px = None
     if area_max is not None:
-        area_max_px = area_max / (pixel_size[1] * pixel_size[2])
+        area_max_px = area_max / (pixel_size[1])
+    window_size_px = int(constants.ROI_WINDOW_SIZE / pixel_size[1])
+    print(f"Window_size {window_size_px}")
 
     min_sigma = min_radius/ (pixel_size[1:].mean() * np.sqrt(3))
     max_sigma = max_radius /(pixel_size[1:].mean() * np.sqrt(3))
@@ -408,7 +553,7 @@ def blob_detection(
     print(f"    Max sigma: {max_sigma:.2f}: ")
 
     composite = None
-    blobs_coords = []
+    dict_centers = {}
     nb_merged_centers = 0
 
     # Set Z range
@@ -421,16 +566,17 @@ def blob_detection(
         print("Processing single frame (4D volume)...")
         vol_c = vol[z_range, py_channel_id]
         vol_bf = vol[z_range, -1]
-        blobs_coords = frame_blob_detection(
+        dict_centers = frame_blob_detection(
             vol_c, algorithm, threshold, 
-             min_sigma, max_sigma, area_max_px
+             min_sigma, max_sigma,window_size_px, area_max_px
         )
+        dict_centers = remove_out_of_border(dict_centers, vol_bf, window_size_px, window_size_px//2)
         if merging_distance:
             print("Merging centers")
-            blobs_coords,nb_merged_centers = merging_centers(blobs_coords, merging_distance,pixel_size)
+            dict_centers,nb_merged_centers = merging_centers(dict_centers, merging_distance, pixel_size)
         print("Creating composite")
         composite = frame_composite_creation(
-                vol_c, vol_bf,blobs_coords,annotation,drawn_radius
+                vol_c, vol_bf,dict_centers,annotation,drawn_radius
         )
         timepoint = 0
 
@@ -443,20 +589,21 @@ def blob_detection(
         # Single timepoint
         if timepoint is not None:
             print(f"Processing single timepoint T={timepoint}...")
-            blobs_coords = frame_blob_detection(
+            dict_centers = frame_blob_detection(
                 vol_c[timepoint], algorithm, threshold, 
                  min_sigma, max_sigma, area_max_px
             )
+            dict_centers = remove_out_of_border(dict_centers, vol_bf, window_size_px//2)
             if merging_distance:
-                blobs_coords,nb_merged_centers = merging_centers(blobs_coords, merging_distance,pixel_size)
+                dict_centers,nb_merged_centers = merging_centers(dict_centers, merging_distance,pixel_size)
             print("Creating composite")
             composite = frame_composite_creation(
-                vol_c[timepoint], vol_bf[timepoint],blobs_coords,annotation, drawn_radius
+                vol_c[timepoint], vol_bf[timepoint],dict_centers,annotation, drawn_radius
             )
 
         # All timepoints (PARALLEL)
         else:
-            blobs_coords = paralell_blob_detection(
+            dict_centers = paralell_blob_detection(
                 vol_c,
                 algorithm,
                 threshold,
@@ -465,12 +612,13 @@ def blob_detection(
                 area_max_px,
                 max_workers=max_workers,
             )
+            dict_centers = remove_out_of_border(dict_centers, vol_bf, window_size_px//2)
             if merging_distance:
-                blobs_coords,nb_merged_centers = merging_centers(blobs_coords, merging_distance,pixel_size)
+                dict_centers,nb_merged_centers = merging_centers(dict_centers, merging_distance,pixel_size)
             composite = paralell_composite_creation(
                 vol_c,
                 vol_bf,
-                blobs_coords,
+                dict_centers,
                 annotation,
                 drawn_radius,
                 max_workers
@@ -478,16 +626,16 @@ def blob_detection(
 
 
     # Check results
-    if len(blobs_coords) == 0:
+    if len(dict_centers["coords"]) == 0:
         print("No blobs detected!")
         return
 
-    print(f"Detected {len(blobs_coords)} blobs")
+    print(f"Detected {len(dict_centers['coords'])} blobs")
 
     # Save results
     save_results(
         composite,
-        blobs_coords,
+        dict_centers,
         input_path,
         output_path,
         channel_id,

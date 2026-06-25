@@ -19,7 +19,7 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from utils import utils
-
+from visualization import visualization
 
 
 def normalizes_frame(frame, pmin=1, pmax=99.8):
@@ -66,6 +66,14 @@ def save_results(labels, polys, input_path, output_path, channel_id, timepoint,z
         ]
     ).to_csv(output_param_path, index_label="index")
 
+def frame_composite_creation(frame,centers, max_radius = 4):
+    if len(centers)==0:
+        return
+    circle_mask = visualization.create_circle_mask(centers, frame, radius = [max_radius], thickness=2)
+   
+    mask = np.zeros(frame.shape, dtype=frame.dtype)
+    annotation_mask = visualization.add_texts(mask, texts=np.arange(len(centers)).astype(str), coords=centers, fontScale = 0.6)
+    return circle_mask, annotation_mask
 
 def segment_frame(frame, model_path=None, proba_thresh=None, nms_thresh=None, scale=None):
     """Segment a 3D image using the StarDist model and save the results.
@@ -226,7 +234,8 @@ def segmentation(input_path, output_path, channel_id, model_resolution, model_pa
         norm_img = normalizes_frame(vol[z_range, py_channel_idx])
 
         [vol_labels, vol_polys] = segment_frame(norm_img, model_path,scale=scale,proba_thresh=proba_thresh,nms_thresh=nms_thresh)
-        composite = np.stack([vol[z_range, py_channel_idx],vol_labels],axis=1)
+        circle_mask, annotation_mask = frame_composite_creation(vol[z_range, py_channel_idx],vol_polys["points"])
+        composite = np.stack([vol[z_range, py_channel_idx],vol_labels,circle_mask, annotation_mask],axis=1)
 
     # Process 5D volume (with time dimension)
     elif vol.ndim == 5:
@@ -239,7 +248,8 @@ def segmentation(input_path, output_path, channel_id, model_resolution, model_pa
             norm_img = normalizes_frame(vol_c[timepoint])
 
             [vol_labels, vol_polys] = segment_frame(norm_img, model_path,scale=scale,proba_thresh=proba_thresh,nms_thresh=nms_thresh)
-            composite = np.stack([vol_c[timepoint],vol_labels],axis=1)
+            circle_mask, annotation_mask = frame_composite_creation(vol_c[timepoint],vol_polys["points"])
+            composite = np.stack([vol_c[timepoint],vol_labels,circle_mask, annotation_mask],axis=1)
 
         # All timepoints (PARALLEL)
         else:
@@ -249,7 +259,6 @@ def segmentation(input_path, output_path, channel_id, model_resolution, model_pa
                 proba_thresh=proba_thresh,nms_thresh=nms_thresh,
                 max_workers=4,
             )
-
             composite = np.stack([vol_c,vol_labels],axis=2)
 
     if len(vol_polys) == 0:  # avoids error if empty

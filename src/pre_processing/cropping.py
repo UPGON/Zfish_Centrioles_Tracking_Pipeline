@@ -4,6 +4,7 @@ import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 import traceback
+import numpy as np
 
 import tifffile
 from tqdm import tqdm

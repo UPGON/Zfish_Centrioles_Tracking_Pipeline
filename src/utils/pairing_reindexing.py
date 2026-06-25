@@ -18,7 +18,7 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from utils import utils
-from pairing import pairing
+from src.pairing import centers_pairing
 from visualization import visualization
 
 def frame_composite_creation(frame,frame_bf,blobs_centers,annotation):

@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
+from matplotlib.colors import to_rgba
 
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
@@ -56,7 +57,7 @@ def plot_points_comparison(stack, points, labels, window_size=60, z_margin=4, te
     fig.suptitle("Spots detection verification of edge case")
     plt.show()
 
-def plot_points_closeup(stack, points,radius, window_size = 46, z_margin=4):
+def plot_points_closeup(stack, points,legends=None, window_size = 46, z_margin=4):
     if len(points) == 0:
         raise ValueError("points cannot be empty.")
 
@@ -67,27 +68,30 @@ def plot_points_closeup(stack, points,radius, window_size = 46, z_margin=4):
 
     n_plots = len(points)
     fig, axes = plt.subplots(1, n_plots, figsize=(20, 8))
+    if n_plots == 1:
+        axes = np.array([axes])
+
     for i in range(n_plots):
-        z,y,x = points[i]
+        z, y, x = points[i]
 
         z_size = stack.shape[0]
         z_range = slice(max(0, z - z_margin), min(z_size, z + z_margin))
-        window_range = utils.get_window_range(window_size, [y,x],stack.shape[1:3])
+        window_range = utils.get_window_range(window_size, [y, x], stack.shape[1:3])
 
         zmax_stack = np.max(stack[z_range], axis=0)
         axes[i].imshow(zmax_stack[window_range], cmap="inferno")
-        axes[i].set_title(f"Rad: {radius[i]:.02f}")
+        if legends is not None:
+            axes[i].set_title(f"Rad: {legends[i]:.02f}")
         axes[i].axis('off')
     plt.tight_layout()
     plt.show()
 
 def plot_zoomed_histogram(values, zooming_threshold, threshold, title, unit, below=True, bins=100,output_path=None, show=True):
     fig, axes = plt.subplots(1, 2, figsize=(12, 4))
-
     axes[0].hist(values, bins=bins)
     axes[0].set_xlabel(unit)
     axes[0].set_ylabel("Frequency")
-    axes[0].set_xlim(0, values.max())
+    axes[0].set_xlim(0, values.max()*1.2)
     axes[0].axvline(0, color="g", linestyle="dashed", linewidth=2)
     axes[0].axvline(zooming_threshold, color="g", linestyle="dashed", linewidth=2)
     axes[0].legend(["Zoomed regions"])
@@ -183,7 +187,11 @@ def plot_comparison_box_plot(values, labels, title, unit, colors=None, linestyle
     bp = ax.boxplot(values, labels=labels, patch_artist=True, medianprops={"color": "black"})
 
     for i, box in enumerate(bp["boxes"]):
-        box.set_facecolor(colors[i])
+        # Set facecolor with transparency, edgecolor with full opacity
+        # Convert color name to RGBA, then set alpha to 0.2
+        color_rgba = to_rgba(colors[i])
+        facecolor_rgba = (*color_rgba[:3], 0.2)
+        box.set_facecolor(facecolor_rgba)
         box.set_edgecolor("black")
         box.set_linestyle(line_styles[i])
         box.set_linewidth(2)
@@ -191,6 +199,17 @@ def plot_comparison_box_plot(values, labels, title, unit, colors=None, linestyle
     for median in bp["medians"]:
         median.set_color("black")
         median.set_linewidth(2)
+
+    # Overlay jittered scatter points for each box
+    for i, vals in enumerate(values):
+        vals_arr = np.asarray(vals)
+        if vals_arr.size == 0:
+            continue
+        # jitter around box x-position (i+1)
+        jitter = 0.04
+        xs = np.random.normal(i + 1, jitter, size=len(vals_arr))
+        scatter_color = colors[i] if colors is not None and i < len(colors) else "red"
+        ax.scatter(xs, vals_arr, alpha=0.4, color=scatter_color, s=20, edgecolors="black", linewidths=0.3)
 
     ax.set_title(title)
     ax.set_ylabel(unit)
