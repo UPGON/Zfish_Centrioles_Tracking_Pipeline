@@ -79,9 +79,13 @@ def map_border_to_nuclei_id(nearest_border_coords,nuclei_df,nucleus_mask):
         label_nucl_idx = nucleus_mask[z,y,x]
 
         candidate_nuclei = nuclei_df[nuclei_df["label_idx"] == label_nucl_idx].reset_index()
-        diff_ex = np.abs(nearest_border_coord - candidate_nuclei[COORDS_COLUMNS].values)
-        best_candidate_idx = diff_ex.mean(axis=1).argmin()
-        nuclei_idx[i] = candidate_nuclei.iloc[best_candidate_idx]["index"]
+        #If we have more than one candidate
+        if len(candidate_nuclei) > 1:
+            diff_ex = np.abs(nearest_border_coord - candidate_nuclei[COORDS_COLUMNS].values)
+            best_candidate_idx = diff_ex.mean(axis=1).argmin()
+            nuclei_idx[i] = candidate_nuclei.iloc[best_candidate_idx]["index"]
+        else:
+            nuclei_idx[i] = candidate_nuclei["index"]
 
     return nuclei_idx.astype(int)
 

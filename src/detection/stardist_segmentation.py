@@ -14,6 +14,7 @@ import multiprocessing
 import traceback
 import os
 import sys
+from scipy.ndimage import gaussian_filter
 
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
@@ -34,6 +35,12 @@ def normalizes_frame(frame, pmin=1, pmax=99.8):
     axis_norm = np.arange(len(frame.shape))
     norm_frame = normalize(frame, pmin=pmin, pmax=pmax, axis=axis_norm)
     return norm_frame
+
+def blur_frame(frame,scale, sigma_um=0.2):
+    sigma_px = sigma_um / scale
+    blurred = gaussian_filter(frame, sigma=sigma_px)
+
+    return blurred
 
 def save_results(labels, polys, input_path, output_path, channel_id, timepoint,z_min,z_max, model_path):
     os.makedirs(output_path, exist_ok=True)
@@ -61,7 +68,7 @@ def save_results(labels, polys, input_path, output_path, channel_id, timepoint,z
                 "Zmin": z_min,
                 "Zmax": z_max,
                 "Model used": model_path if model_path is not None else "3D_demo",
-                "Blobs detected": len(polys["points"]),
+                "Nuclei detected": len(polys["points"]),
             }
         ]
     ).to_csv(output_param_path, index_label="index")
@@ -193,7 +200,7 @@ def process_segmentation_parallel(
     return all_labels, all_polys
 
 
-def segmentation(input_path, output_path, channel_id, model_resolution, model_path=None,proba_thresh=None, nms_thresh=None,timepoint=None, z_min=None, z_max=None,resolution_as_scale=False):
+def segmentation(input_path, output_path, channel_id, model_resolution, model_path=None,proba_thresh=None, nms_thresh=None,blur=False,timepoint=None, z_min=None, z_max=None,resolution_as_scale=False):
     """Main segmentation pipeline.
 
     Args:
@@ -231,11 +238,15 @@ def segmentation(input_path, output_path, channel_id, model_resolution, model_pa
     if vol.ndim == 4:
         timepoint = 0
         print("Processing single frame (4D volume)...")
-        norm_img = normalizes_frame(vol[z_range, py_channel_idx])
+        frame = vol[z_range, py_channel_idx]
+        if blur:
+            frame = blur_frame(frame, resolution)
+            
+        norm_img = normalizes_frame(frame)
 
         [vol_labels, vol_polys] = segment_frame(norm_img, model_path,scale=scale,proba_thresh=proba_thresh,nms_thresh=nms_thresh)
-        circle_mask, annotation_mask = frame_composite_creation(vol[z_range, py_channel_idx],vol_polys["points"])
-        composite = np.stack([vol[z_range, py_channel_idx],vol_labels,circle_mask, annotation_mask],axis=1)
+        circle_mask, annotation_mask = frame_composite_creation(frame,vol_polys["points"])
+        composite = np.stack([frame,vol_labels,circle_mask, annotation_mask],axis=1)
 
     # Process 5D volume (with time dimension)
     elif vol.ndim == 5:
@@ -301,6 +312,7 @@ def _build_arg_parser():
     parser.add_argument("--model_path", type=str) 
     parser.add_argument("--proba_thresh", type=float)  
     parser.add_argument("--nms_thresh", type=float)   
+    parser.add_argument("--blur", type=bool, default = False)   
     parser.add_argument("--timepoint", type=int)
     parser.add_argument("--z_min", type=int)
     parser.add_argument("--z_max", type=int)
@@ -330,6 +342,7 @@ if __name__ == "__main__":
         args.model_path,
         args.proba_thresh,
         args.nms_thresh,
+        args.blur,
         args.timepoint,
         args.z_min,
         args.z_max,

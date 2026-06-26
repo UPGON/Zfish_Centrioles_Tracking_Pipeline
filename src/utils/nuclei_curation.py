@@ -43,44 +43,45 @@ def is_integery(val):
 
         return True
 
-def parse_addition_line(line):
-    raw = line.strip()
-    if not raw:
-        return None
+def parse_merging_line(instructions):
+    pairs = []
+    for line_num, line in enumerate(instructions, start=1):
+        line = line.strip()
+        if not line or line.startswith("#"):  # skip empty lines and comments
+            continue
+        parts = line.split()
+        if len(parts) != 2:
+            raise ValueError(
+                f"Line {line_num}: expected 2 integers, got {len(parts)}: '{line}'"
+            )
+        try:
+            idx1, idx2 = int(parts[0]), int(parts[1])
+        except ValueError:
+            raise ValueError(
+                f"Line {line_num}: could not parse as integers: '{line}'"
+            )
+        pairs.append((idx1, idx2))
 
-    bracket_match = re.search(r"\[(.*)\]", raw)
-    if not bracket_match:
-        raise ValueError(f"Addition line must contain coordinates in brackets: '{line}'")
+    return pairs
 
-    inside = bracket_match.group(1)
-    tokens = [p.strip() for p in re.split(r"[,\s]+", inside) if p.strip()]
-    if len(tokens) < 3:
-        raise ValueError(f"Addition line must contain at least 3 coordinate values: '{line}'")
+def merging(centers, segm_vol,instructions):
+    assert all(is_integery(line) for line in instructions), "All lines in removal instruction files should be integers corresponding to the index of the spot to remove"
+    merging_idxs = parse_merging_line(instructions)
 
-    coords = []
-    i = 0
-    while i < len(tokens) and len(coords) < 3:
-        token = tokens[i]
-        if re.match(r"^[xyzXYZ]$", token):
-            i += 1
-            if i >= len(tokens):
-                raise ValueError(f"Missing coordinate value after label '{token}' in line '{line}'")
-            token = tokens[i]
-        elif re.match(r"^[xyzXYZ][:=].+", token):
-            token = re.sub(r"^[xyzXYZ][:=]", "", token)
-        elif re.match(r"^[xyzXYZ].+", token) and not is_integery(token):
-            token = re.sub(r"^[xyzXYZ]+", "", token)
+    new_centers = []
+    for idx1,idx2 in merging_idxs:
+        center1 = centers[["Z","Y","X"]].iloc[idx1].values
+        center2 = centers[["Z","Y","X"]].iloc[idx2].values
+        new_centers.append((center1 + center2)/2)
+        label1 = segm_vol[center1]
+        label2 = segm_vol[center2]
 
-        if not is_integery(token):
-            raise ValueError(f"Coordinate value is not an integer: '{token}' in line '{line}'")
-        coords.append(int(token))
-        i += 1
+        # Merge the 2 semgentation surface
+        segm_vol[segm_vol == label2] = label1
 
-    if len(coords) != 3:
-        raise ValueError(f"Could not parse 3 coordinates from line: '{line}'")
-
-    return coords
-
+    addition_df = pd.DataFrame(new_centers, columns=["Z", "Y", "X"])
+    centers_df = pd.concat([centers_df, addition_df])
+    return centers_df
 
 def removal(centers_df,segm_vol, instructions):
     assert all(is_integery(line) for line in instructions), "All lines in removal instruction files should be integers corresponding to the index of the spot to remove"
@@ -100,17 +101,22 @@ def removal(centers_df,segm_vol, instructions):
     return centers_df_filtered, label_vol
 
 def nuclei_curation(centers_path, segm_path, instructions_path):
-    centers_df = pd.read_csv(centers_path)
-    centers_df = centers_df.reset_index(drop=True)  # Ensure index is [0, 1, 2, ...]
+    initial_centers_df = pd.read_csv(centers_path)
+    initial_centers_df = initial_centers_df.reset_index(drop=True)  # Ensure index is [0, 1, 2, ...]
     segm_vol = tifffile.imread(segm_path)
 
     instructions_files = [p for p in instructions_path.iterdir() if p.suffix.lower() == INSTRUCTIONS_FORMAT]
 
     for instruction_file in instructions_files:
-        if instruction_file.stem.lower().startswith("remove"):
+        if instruction_file.stem.lower().startswith("merge"):
+            print(f"Processing {instruction_file.name} for merging")
+            instructions = read_txt_path(instruction_file)
+            centers_df, segm_vol[:,SEGM_CHANNEL_ID] = merging(initial_centers_df, segm_vol[:,SEGM_CHANNEL_ID], instructions)
+            centers_df = centers_df.reset_index(drop=True)  # Reset index after removal
+        elif instruction_file.stem.lower().startswith("remove"):
             print(f"Processing {instruction_file.name} for removal")
             instructions = read_txt_path(instruction_file)
-            centers_df, segm_vol[:,SEGM_CHANNEL_ID] = removal(centers_df, segm_vol[:,SEGM_CHANNEL_ID], instructions)
+            centers_df, segm_vol[:,SEGM_CHANNEL_ID] = removal(initial_centers_df, segm_vol[:,SEGM_CHANNEL_ID], instructions)
             centers_df = centers_df.reset_index(drop=True)  # Reset index after removal
         else:
             raise ValueError("Instruction file should be named remove.txt")

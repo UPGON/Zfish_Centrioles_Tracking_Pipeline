@@ -570,7 +570,7 @@ def blob_detection(
             vol_c, algorithm, threshold, 
              min_sigma, max_sigma,window_size_px, area_max_px
         )
-        dict_centers = remove_out_of_border(dict_centers, vol_bf, window_size_px, window_size_px//2)
+        dict_centers = remove_out_of_border(dict_centers, vol_bf, window_size_px)
         if merging_distance:
             print("Merging centers")
             dict_centers,nb_merged_centers = merging_centers(dict_centers, merging_distance, pixel_size)

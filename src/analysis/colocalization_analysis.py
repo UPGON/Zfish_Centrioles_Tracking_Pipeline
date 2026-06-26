@@ -226,7 +226,7 @@ def plot_z_diff_histogram(output_path_plots, paired_centers1_df, paired_centers2
     z_diff = paired_centers1_df["Zum"].values - paired_centers2_df["Zum"].values
     fig, ax = plt.subplots(figsize=(6, 4))
     ax.hist(z_diff,bins=100)
-    ax.set_title("Foci distance to nearest nuclei border")
+    ax.set_title("Axial displacement between paired Cent2Eos and CenSpark foci")
     ax.set_xlabel("Distance [um]")
     ax.set_ylabel("Frequency")
     ax.legend([f"Mean {z_diff.mean():.1f}"], loc="upper right")
