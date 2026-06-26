@@ -22,7 +22,7 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from utils import utils
-from pairing import centers_pairing
+from src.pairing import points_pairing
 from visualization import visualization
 from visualization import plots
 
@@ -377,13 +377,13 @@ def pairing_centers(vol, centers1_df, centers2_df, max_pairing_distance_xy,max_p
 
     if vol.ndim == 4:
         print("Processing single frame (4D volume)...")
-        unrestricted_pairing_df = centers_pairing.pairing_points_df_anisotropic(centers1_df, centers2_df, 1e10,1e10)
-        pairing_df              = centers_pairing.pairing_points_df_anisotropic(centers1_df, centers2_df, max_pairing_distance_xy,max_pairing_distance_z)
+        unrestricted_pairing_df = points_pairing.pairing_points_df_anisotropic(centers1_df, centers2_df, 1e10,1e10)
+        pairing_df              = points_pairing.pairing_points_df_anisotropic(centers1_df, centers2_df, max_pairing_distance_xy,max_pairing_distance_z)
 
     elif vol.ndim == 5:
         print(f"Processing {vol.shape[0]} frames (5D volume)...")
-        unrestricted_pairing_df = centers_pairing.temporal_pairing_points_df_anisotropic(centers1_df, centers2_df, 1e10,1e10)
-        pairing_df              = centers_pairing.temporal_pairing_points_df_anisotropic(centers1_df, centers2_df, max_pairing_distance_xy,max_pairing_distance_z)
+        unrestricted_pairing_df = points_pairing.temporal_pairing_points_df_anisotropic(centers1_df, centers2_df, 1e10,1e10)
+        pairing_df              = points_pairing.temporal_pairing_points_df_anisotropic(centers1_df, centers2_df, max_pairing_distance_xy,max_pairing_distance_z)
     else:
         raise ValueError(f"Volume must be 4D or 5D, got shape {vol.shape}")
 
