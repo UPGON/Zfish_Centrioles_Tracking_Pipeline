@@ -17,7 +17,7 @@ from skimage.restoration import (
 from scipy.ndimage import gaussian_filter
 
 
-def denoise(vol, disk_size):
+def tophat_denoise(vol, disk_size):
     """Denoise a 5D volume to a smaller size.
 
     Args:
@@ -58,19 +58,52 @@ def denoise(vol, disk_size):
     return stack
 
 
-def gaussian_denoising(vol):
+def median_denoise(vol, disk_size):
+    """Denoise a 5D volume to a smaller size.
+
+    Args:
+        vol: Input volume with shape (T, Z, C, Y, X)
+        scale: Scaling factor (0.75 = 75% of original size)
+
+    Returns:
+        Interpolated volume
+    """
     T, Z, C, Y, X = vol.shape
     stack = np.empty(vol.shape, vol.dtype)
     total = T * Z * C
     with tqdm(total=total, desc="Denoising frames", unit="frame") as pbar:
-        for t, c in product(range(T), range(C - 1)):
-            img = vol[t, :, c]
+        for t, z, c in product(range(T), range(Z), range(C)):
+            img = vol[t, z, c]
 
+            # Background subtraction
             background = gaussian_filter(img.astype(float), sigma=20)
             corrected = img.astype(float) - background
             corrected = np.clip(corrected, 0, None)
 
-            stack[t, :, c] = gaussian_filter(corrected, sigma=1)
+            footprint = ski.morphology.disk(disk_size)
+    
+            stack[t,z,c] =  ski.filters.rank.median(
+                            img,
+                            footprint
+                        )
+
+            pbar.update(1)
+    return stack
+
+
+def background_removal(vol,sigma_background=20,sigma_obj =1):
+    T, Z, C, Y, X = vol.shape
+    stack = np.empty(vol.shape, vol.dtype)
+    total = T * C
+    with tqdm(total=total, desc="Denoising frames", unit="frame") as pbar:
+        for t, c in product(range(T), range(C - 1)):
+            img = vol[t, :, c]
+
+            background = gaussian_filter(img.astype(float), sigma=sigma_background)
+            corrected = img.astype(float) - background
+            corrected = np.clip(corrected, 0, None)
+
+            stack[t, :, c] = gaussian_filter(corrected, sigma=sigma_obj)
             pbar.update(1)
     return stack
 
@@ -79,7 +112,7 @@ def denoising(input, output, disk_size):
     """Handle the denoising pipeline"""
     start_time = time.time()
     memmap_volume = tifffile.memmap(input)
-    denoised_img = denoise(memmap_volume, disk_size)
+    denoised_img = median_denoise(memmap_volume, disk_size)
     tifffile.imwrite(output, denoised_img, imagej=True)
     print(f"Denoising took {(time.time() - start_time):.2f} seconds")
 

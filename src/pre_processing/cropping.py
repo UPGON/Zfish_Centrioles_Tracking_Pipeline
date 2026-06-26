@@ -3,6 +3,8 @@ import sys
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
+import traceback
+import numpy as np
 
 import tifffile
 from tqdm import tqdm
@@ -81,7 +83,6 @@ def crop_image(
 
     raise ValueError(f"Unsupported image format: {img_format}")
 
-
 def crop_file(
     input_path: Path,
     output_path: Path,
@@ -95,7 +96,25 @@ def crop_file(
     x_start,
     x_end,
 ):
-    img = tifffile.imread(input_path)
+    with tifffile.TiffFile(input_path) as tif:
+        img = tif.asarray()
+
+        # ImageJ metadata
+        imagej_metadata = tif.imagej_metadata or {}
+
+        # Resolution tags (pixel size stored in TIFF tags)
+        resolution    = None
+        resolutionunit = None
+        if tif.pages:
+            page = tif.pages[0]
+            x_res = page.tags.get("XResolution")
+            y_res = page.tags.get("YResolution")
+            res_unit = page.tags.get("ResolutionUnit")
+            if x_res and y_res:
+                resolution = (x_res.value, y_res.value)
+            if res_unit:
+                resolutionunit = res_unit.value
+
     cropped_img = crop_image(
         img,
         img_format,
@@ -113,12 +132,19 @@ def crop_file(
     output_file = output_path / input_path.name
     if output_file.exists():
         print(f"Warning: Output file {output_file} already exists and will be overwritten.")
-    tifffile.imwrite(output_file, cropped_img, imagej=True)
+
+    tifffile.imwrite(
+        output_file,
+        cropped_img,
+        imagej=True,
+        metadata=imagej_metadata if imagej_metadata else None,
+        resolution=resolution,
+        resolutionunit=resolutionunit,
+    )
 
 
 def crop_file_task(args):
     return crop_file(*args)
-
 
 def crop_data_set(
     input_path: Path,
@@ -185,7 +211,12 @@ def cropping(
     x_start=None,
     x_end=None,
 ):
-    if input_path.is_file():
+    start = time.time()
+
+    if not input_path.exists():
+        raise ValueError("The input path doesn't exists, please check the spelling")
+
+    elif input_path.is_file():
         crop_file(
             input_path,
             output_path,
@@ -217,6 +248,7 @@ def cropping(
         raise FileNotFoundError(f"{input_path} is neither a file nor a directory.")
 
     print("Successfully cropped images")
+    print(f"Operation time: {time.time() - start:.6f}s")
 
 
 def _build_arg_parser():
@@ -241,21 +273,23 @@ def _build_arg_parser():
 
 
 if __name__ == "__main__":
-    start = time.time()
     args = _build_arg_parser().parse_args()
+    try:
+        cropping(
+            args.input_path,
+            args.output_path,
+            args.format,
+            args.t_start,
+            args.t_end,
+            args.z_start,
+            args.z_end,
+            args.y_start,
+            args.y_end,
+            args.x_start,
+            args.x_end,
+        )
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        traceback.print_exc()
+        sys.exit(1)
 
-    cropping(
-        args.input_path,
-        args.output_path,
-        args.format,
-        args.t_start,
-        args.t_end,
-        args.z_start,
-        args.z_end,
-        args.y_start,
-        args.y_end,
-        args.x_start,
-        args.x_end,
-    )
-
-    print(f"Operation time: {time.time() - start:.6f}s")
