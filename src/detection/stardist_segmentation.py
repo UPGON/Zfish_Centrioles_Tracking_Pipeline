@@ -1,9 +1,7 @@
 import argparse
 import pathlib
-import time
 import tifffile
 import numpy as np
-from itertools import product
 from stardist.models import StarDist3D
 from csbdeep.utils import Path, normalize
 import tqdm
@@ -11,7 +9,6 @@ import pandas as pd
 from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import multiprocessing
-import traceback
 import os
 import sys
 from scipy.ndimage import gaussian_filter

@@ -2,23 +2,18 @@ import sys
 import os
 import argparse
 import pathlib
-import time
 import tifffile
-import cv2
 import numpy as np
 import pandas as pd
 from pathlib import Path
 from tqdm import tqdm
-from scipy.spatial import distance_matrix
-from scipy.optimize import linear_sum_assignment
-import matplotlib.pyplot as plt
 import traceback
 
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from utils import utils
-from src.pairing import centers_pairing
+from src.pairing import points_pairing
 from visualization import visualization
 
 def frame_composite_creation(frame,frame_bf,blobs_centers,annotation):

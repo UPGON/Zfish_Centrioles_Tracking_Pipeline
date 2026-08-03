@@ -1,16 +1,11 @@
 import sys
 from pathlib import Path
-import os
 import argparse
 import pathlib
 import time
 import tifffile
-import cv2
 import numpy as np
-import pandas as pd
-from skimage.feature import blob_dog, blob_log
 from skimage.filters import threshold_yen, threshold_minimum
-from skimage.measure import label
 from skimage.morphology import remove_small_objects
 from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor, as_completed
