@@ -1,12 +1,4 @@
-Generating the docs
-----------
+# Documentation organization
 
-Use [mkdocs](http://www.mkdocs.org/) structure to update the documentation. 
-
-Build locally with:
-
-    mkdocs build
-
-Serve locally with:
-
-    mkdocs serve
+You may find in the `docs` folder the guideline to use the different available pipelines and to set up the project on your computer. <br>
+Under the `src` folder, you may find the documentation for each indivual scripts.
