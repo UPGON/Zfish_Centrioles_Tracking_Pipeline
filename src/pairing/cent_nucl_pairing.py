@@ -3,25 +3,13 @@ import pathlib
 from pathlib import Path
 import os
 import argparse
-import time
 import tifffile
 import cv2
 import numpy as np
 import pandas as pd
-from skimage.feature import blob_dog, blob_log
-from skimage.filters import threshold_yen
-from skimage.measure import label
-from skimage.morphology import remove_small_objects
-from scipy import ndimage
-from tqdm import tqdm
-from concurrent.futures import ProcessPoolExecutor, as_completed
-import multiprocessing
 import traceback
-from skimage.exposure import match_histograms
-from skimage.transform import rescale
-from scipy.spatial import distance_matrix
 from scipy.spatial import cKDTree
-from scipy.ndimage import distance_transform_edt, binary_erosion
+from scipy.ndimage import distance_transform_edt
 import matplotlib.pyplot as plt
 
 project_root = Path(__file__).parent.parent
@@ -85,7 +73,7 @@ def map_border_to_nuclei_id(nearest_border_coords,nuclei_df,nucleus_mask):
             best_candidate_idx = diff_ex.mean(axis=1).argmin()
             nuclei_idx[i] = candidate_nuclei.iloc[best_candidate_idx]["index"]
         else:
-            nuclei_idx[i] = candidate_nuclei["index"]
+            nuclei_idx[i] = float(candidate_nuclei.iloc[0]["index"])
 
     return nuclei_idx.astype(int)
 
@@ -166,7 +154,9 @@ def save_foci_per_tot_nuclei(cent_per_nucl_tot,output_path_plots):
 def save_distance_histogram(distances,output_path_plots):
     fig, ax = plt.subplots(figsize=(6, 4))
     ax.hist(distances,bins=100)
-    ax.set_title("Foci distance to nearest nuclei border")
+    ax.set_xlim([0,18])
+    ax.set_ylim([0,55])
+    #ax.set_title("Foci distance to nearest nuclei border")
     ax.set_xlabel("Distance [um]")
     ax.set_ylabel("Frequency")
     ax.legend([f"Mean {distances.mean():.1f}"], loc="upper right")
@@ -298,15 +288,15 @@ def _build_arg_parser():
     parser.add_argument("--vol_path", required=True, type=pathlib.Path,
                        help="Input TIFF file")
     parser.add_argument("--segm_path", required=True,  type=pathlib.Path,
-                       help="Channel to process")
+                       help="Segmentation TIFF file")
     parser.add_argument("--centriole_center_path",  required=True, type=pathlib.Path,
-                       help="Output directory")
+                       help="Centriole centers CSV file")
     parser.add_argument("--nuclei_center_path", required=True, type=pathlib.Path,
-                       help="Maximum radius [um] (default: 1.3)")
+                       help="Nuclei centers CSV file")
     parser.add_argument("--max_pairing_dist", type=float,
-                       help="Maximum radius [um] (default: 1.3)")
+                       help="Max pairing distance in µm (default: no limit)")
     parser.add_argument("--output_path", type=pathlib.Path,
-                       help="Maximum area in µm² for filtering")
+                       help="Output directory (default: ./pairing_res)")
     
     
     return parser

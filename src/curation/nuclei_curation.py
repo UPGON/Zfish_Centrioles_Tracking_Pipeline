@@ -1,18 +1,11 @@
 import sys
-import os
-import re
 import argparse
 import pathlib
 import pandas as pd
 from pathlib import Path
-import matplotlib.pyplot as plt
 import traceback
 import numpy as np
-from skimage.filters import threshold_yen
-from skimage.measure import label
-from scipy import ndimage
 import tifffile
-from skimage.measure import label
 
 
 project_root = Path(__file__).parent.parent

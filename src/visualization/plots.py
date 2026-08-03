@@ -1,11 +1,12 @@
 
 import sys
 from pathlib import Path
-import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 from matplotlib.colors import to_rgba
+import seaborn as sns
+from statannotations.Annotator import Annotator
 
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
@@ -234,3 +235,81 @@ def plot_comparison_box_plot(values, labels, title, unit, colors=None, linestyle
 
     if show:
         plt.show()
+
+def plot_sns_comparison_box_plot(df1,df2, x,y,hue,title,units,pairs,subtitle1="Cetn2Eos",subtitle2="CenSpark",test ="t-test_ind",output_path = None, show = True):
+    fig, axes = plt.subplots(1, 2, figsize=(10, 5), sharey=True)
+    clean_df1 = df1.dropna()
+    clean_df2 = df2.dropna()
+
+
+
+    # CT in green
+    sns.boxplot(
+        data=clean_df1,
+        x=x,
+        y=y,
+        hue=hue,
+        palette=["darkgreen","darkseagreen"],
+        boxprops={"alpha": 0.6},
+        legend=False,
+        ax=axes[0],
+    )
+    sns.stripplot(data = clean_df1,
+        x=x,
+        y=y,
+        hue=hue,
+        palette=["darkgreen","darkseagreen"],
+        alpha=0.8,
+        linewidth=0.5,  
+        size=8,
+        legend=False,
+        ax=axes[0])
+    axes[0].set_title(subtitle1)
+    #axes[0].spines['top'].set_visible(False)
+    #axes[0].spines['right'].set_visible(False)
+    axes[0].set(xlabel=None)
+    axes[0].set_ylabel(units)
+
+
+    # CS in purple
+    sns.stripplot(data = clean_df2,
+        x=x,
+        y=y,
+        hue=hue,
+        palette=["indigo","mediumpurple"],
+        alpha=0.8,
+        linewidth=0.5,  
+        size=8,
+        legend=False,
+        ax=axes[1]
+    )
+    sns.boxplot(
+        data=clean_df2,
+        x=x,
+        y=y,
+        hue=hue,
+        palette=["indigo","mediumpurple"],
+        boxprops={"alpha": 0.6},
+        ax=axes[1],
+    )
+
+    annotator = Annotator(axes[0], pairs =pairs, data=clean_df1, x=x, y=y)
+    annotator.configure(test=test, text_format='star', loc='inside')
+    annotator.apply_and_annotate()
+ 
+    annotator = Annotator(axes[1], pairs =pairs, data=clean_df2, x=x, y=y)
+    annotator.configure(test=test, text_format='star', loc='inside')
+    annotator.apply_and_annotate()
+    axes[1].set_title(subtitle2)
+    #axes[1].spines['top'].set_visible(False)
+    #axes[1].spines['right'].set_visible(False)
+    axes[1].set(xlabel=None)
+
+    #fig.suptitle(title, fontsize=14)
+
+    plt.tight_layout()
+    if show:
+        plt.show()
+
+    if output_path is not None:
+        fig.savefig(output_path, dpi=300)

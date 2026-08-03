@@ -4,25 +4,18 @@ import argparse
 import pathlib
 import time
 import tifffile
-import cv2
 import numpy as np
 import pandas as pd
 from pathlib import Path
 from tqdm import tqdm
-from scipy.spatial import distance_matrix
-from scipy.optimize import linear_sum_assignment
 import matplotlib.pyplot as plt
 import traceback
-from skimage import morphology, filters
-from skimage.filters import threshold_yen
-from skimage.measure import label
-from scipy import ndimage
 
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from utils import utils
-from src.pairing import points_pairing
+from pairing import points_pairing
 from visualization import visualization
 from visualization import plots
 
@@ -119,6 +112,12 @@ def plot_areas_comparison(output_path,  paired_centers1_df,paired_centers2_df,un
     unpaired_areas1 = unpaired_centers1_df["Area_um"].values
     unpaired_areas2 = unpaired_centers2_df["Area_um"].values
 
+    # Don't print the foci where we couldn't detecte the area
+    paired_areas1 = paired_areas1[paired_areas1 != 0]
+    paired_areas2 = paired_areas2[paired_areas2 != 0]
+    unpaired_areas1 = unpaired_areas1[unpaired_areas1 != 0]
+    unpaired_areas2 = unpaired_areas2[unpaired_areas2 != 0]
+
     plots.plot_comparison_box_plot(
         values = [paired_areas1, unpaired_areas1, paired_areas2, unpaired_areas2],
         labels = [channel1_name,channel1_name, channel2_name,channel2_name],
@@ -136,11 +135,37 @@ def plot_radius_comparison(output_path,  paired_centers1_df,paired_centers2_df,u
         print("Area data not found in centers DataFrames: can't create area comparison plot")
         return
 
+   # Don't print the foci where we couldn't detecte the area
+    paired_centers1_df = paired_centers1_df[paired_centers1_df["Rum"] != 0]
+    paired_centers2_df = paired_centers2_df[paired_centers2_df["Rum"] != 0]
+    unpaired_centers1_df = unpaired_centers1_df[unpaired_centers1_df["Rum"] != 0]
+    unpaired_centers2_df = unpaired_centers2_df[unpaired_centers2_df["Rum"] != 0]
+
     paired_areas1 = paired_centers1_df["Rum"].values
     paired_areas2 = paired_centers2_df["Rum"].values
 
     unpaired_areas1 = unpaired_centers1_df["Rum"].values
     unpaired_areas2 = unpaired_centers2_df["Rum"].values
+
+    paired_centers1_df["Colocalizing"] = "Colocalizing"
+    paired_centers2_df["Colocalizing"] = "Colocalizing"
+    unpaired_centers1_df["Colocalizing"] = "Non-colocalizing"
+    unpaired_centers2_df["Colocalizing"] = "Non-colocalizing"
+
+    area1_df = pd.concat([paired_centers1_df, unpaired_centers1_df], ignore_index=True)
+    area2_df = pd.concat([paired_centers2_df, unpaired_centers2_df], ignore_index=True)
+    plots.plot_sns_comparison_box_plot(
+        df1 = area1_df,
+        df2 = area2_df,
+        x = "Colocalizing",
+        y = "Rum",
+        hue = "Colocalizing",
+        title = "Comparison of radius of detected foci",
+        units = "Radius [um]",
+        pairs = [("Colocalizing", "Non-colocalizing")],
+        output_path=output_path / "seaborn_radius_comparison_plot",
+        show=False
+    )
 
     plots.plot_comparison_box_plot(
         values = [paired_areas1, unpaired_areas1, paired_areas2, unpaired_areas2],
@@ -158,12 +183,38 @@ def plot_intensity_comparison(output_path,  paired_centers1_df,paired_centers2_d
     if "Intensity" not in paired_centers1_df.columns or "Intensity" not in paired_centers2_df.columns:
         print("Intensity data not found in centers DataFrames: can't create intensity comparison plot")
         return
+    
+    # Don't print the foci where we couldn't detecte the area
+    paired_centers1_df = paired_centers1_df[paired_centers1_df["Intensity"] != 0]
+    paired_centers2_df = paired_centers2_df[paired_centers2_df["Intensity"] != 0]
+    unpaired_centers1_df = unpaired_centers1_df[unpaired_centers1_df["Intensity"] != 0]
+    unpaired_centers2_df = unpaired_centers2_df[unpaired_centers2_df["Intensity"] != 0]
 
     paired_intensities1 = paired_centers1_df["Intensity"].values
     paired_intensities2 = paired_centers2_df["Intensity"].values
 
     unpaired_intensities1 = unpaired_centers1_df["Intensity"].values
     unpaired_intensities2 = unpaired_centers2_df["Intensity"].values
+
+    paired_centers1_df["Colocalizing"] = "Colocalizing"
+    paired_centers2_df["Colocalizing"] = "Colocalizing"
+    unpaired_centers1_df["Colocalizing"] = "Non-colocalizing"
+    unpaired_centers2_df["Colocalizing"] = "Non-colocalizing"
+
+    area1_df = pd.concat([paired_centers1_df, unpaired_centers1_df], ignore_index=True)
+    area2_df = pd.concat([paired_centers2_df, unpaired_centers2_df], ignore_index=True)
+    plots.plot_sns_comparison_box_plot(
+        df1 = area1_df,
+        df2 = area2_df,
+        x = "Colocalizing",
+        y = "Intensity",
+        hue = "Colocalizing",
+        title = "Comparison of radius of detected foci",
+        units = "Intensity",
+        pairs = [("Colocalizing", "Non-colocalizing")],
+        output_path=output_path / "seaborn_intensity_comparison_plot",
+        show=False
+    )
 
     plots.plot_comparison_box_plot(
         values = [paired_intensities1, unpaired_intensities1, paired_intensities2, unpaired_intensities2],

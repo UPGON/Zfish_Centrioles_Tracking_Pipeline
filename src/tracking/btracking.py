@@ -14,7 +14,7 @@ sys.path.insert(0, str(project_root))
 
 from visualization import visualization
 from utils import utils
-from src.pairing import centers_pairing
+from src.pairing import points_pairing
 
 def track(objects, config_path, axis_lim, scale, max_search_radius = 7):
     with btrack.BayesianTracker() as tracker:

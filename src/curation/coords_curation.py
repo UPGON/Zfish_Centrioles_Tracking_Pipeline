@@ -7,7 +7,7 @@ import pandas as pd
 from pathlib import Path
 import traceback
 import numpy as np
-from skimage.filters import threshold_yen
+from skimage.filters import threshold_otsu
 from skimage.measure import label
 from scipy import ndimage
 import tifffile
@@ -97,7 +97,7 @@ def measure_features(centers,frame, window_size = 40):
 
         img = frame[z][window_range]
         gaussian_img = ndimage.gaussian_filter(img,sigma=1)
-        yen_img = gaussian_img > threshold_yen(gaussian_img)
+        yen_img = gaussian_img > threshold_otsu(gaussian_img)
 
         yen_labels = label(yen_img)
         areas[i] = ndimage.sum(yen_img, labels=yen_labels, index=yen_labels[wy,wx])

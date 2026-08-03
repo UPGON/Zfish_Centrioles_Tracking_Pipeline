@@ -5,13 +5,11 @@ import os
 import argparse
 import time
 import tifffile
-import cv2
 import numpy as np
 import pandas as pd
 from skimage.feature import blob_dog, blob_log
-from skimage.filters import threshold_yen
+from skimage.filters import threshold_otsu
 from skimage.measure import label
-from skimage.morphology import remove_small_objects
 from scipy import ndimage
 from tqdm import tqdm
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -19,7 +17,6 @@ import multiprocessing
 import traceback
 from skimage.exposure import match_histograms
 from skimage.transform import rescale
-from scipy.spatial import distance_matrix
 from scipy.spatial import cKDTree
 
 
@@ -105,7 +102,7 @@ def merging_centers(dict_centers, merging_distance, resolution):
             areas = np.concatenate([unmerged_areas, np.array(new_areas_list)])
             intensities = np.concatenate([unmerged_intensities, np.array(new_intensities_list)])
             if temporal_data:
-                frames = np.concatenate([unmerged_frames, np.array([new_frames_list])])
+                frames = np.concatenate([unmerged_frames, np.array(new_frames_list)])
 
         else:
             coords = unmerged_coords
@@ -222,13 +219,28 @@ def paralell_composite_creation(
     
     print(f"Processing {t} frames using {max_workers} workers...")
     if draw_drawn_radius is None:
-        draw_drawn_radius = (blobs_center[:,-1].mean()) * 1.2
+        draw_drawn_radius = (blobs_center["T"].mean()) * 1.2
     
     # Prepare tasks
-    tasks = [
-        (ti, vol_c[ti],vol_bf[ti],blobs_center[blobs_center[:,0] == ti][:,1:], annotation,draw_drawn_radius)
-        for ti in range(t)
-    ]
+    tasks = []
+    for ti in range(t):
+        frame_mask = blobs_center["T"] == ti
+
+        if np.any(frame_mask):
+            frame_blobs = {
+                "coords": blobs_center["coords"][frame_mask],
+                "areas": blobs_center["areas"][frame_mask],
+                "intensities": blobs_center["intensities"][frame_mask],
+            }
+        else:
+            frame_blobs = {
+                "coords": np.empty((0, 3), dtype=blobs_center["coords"].dtype),
+                "areas": np.empty((0,), dtype=blobs_center["areas"].dtype),
+                "intensities": np.empty((0,), dtype=blobs_center["intensities"].dtype),
+            }
+
+        tasks.append((ti, vol_c[ti], vol_bf[ti], frame_blobs, annotation, draw_drawn_radius))
+   
     
     # Pre-allocate composite
     channels_nb = 4 if annotation else 3
@@ -285,11 +297,16 @@ def remove_out_of_border(dict_centers, frame, window_size=40, zero_frac_thresh=0
 
     valid_mask = []
 
-    for center in coords:
+    for i in range(len(coords)):
+        center = coords[i]
+        frameT = frames[i] if has_temporal else None
         cz, cy, cx = int(center[0]), int(center[1]), int(center[2])
 
-        window_range = utils.get_window_range(window_size, center, frame.shape)
-        window = frame[cz][window_range[1:3]]
+        window_range = utils.get_window_range(window_size, center, frame.shape[-3:])
+        if has_temporal:
+            window = frame[frameT][cz][window_range[1:3]]
+        else:
+            window = frame[cz][window_range[1:3]]
 
         zero_frac = np.mean(window == 0)
 
@@ -323,7 +340,8 @@ def measure_features(centers,frame, window_size = 40):
 
         img = frame[z][window_range]
         gaussian_img = ndimage.gaussian_filter(img,sigma=1)
-        yen_img = gaussian_img > threshold_yen(gaussian_img)
+        #yen_img = gaussian_img > threshold_yen(gaussian_img)
+        yen_img = gaussian_img > threshold_otsu(gaussian_img)
 
         yen_labels = label(yen_img)
         areas[i] = ndimage.sum(yen_img, labels=yen_labels, index=yen_labels[wy,wx])
@@ -369,7 +387,7 @@ def frame_blob_detection(frame, algorithm, threshold, min_sigma=1, max_sigma=5, 
 
 def frame_blob_detection_task(args):
     frame_idx, frame, algorithm, threshold, min_sigma, max_sigma,window_size, area_max = args
-    blobs_center = frame_blob_detection(frame, algorithm, threshold, min_sigma,window_size, max_sigma, area_max)
+    blobs_center = frame_blob_detection(frame, algorithm, threshold, min_sigma,max_sigma,window_size, area_max)
     return frame_idx, blobs_center
 
 
@@ -401,10 +419,10 @@ def paralell_blob_detection(vol_c, algorithm, threshold, min_sigma, max_sigma,wi
 
     if all_blobs_coords:
         return {
-            "coords": np.concatenate([b["coords"] for b in all_blobs_coords], axis=0),
-            "areas": np.concatenate([b["areas"] for b in all_blobs_coords], axis=0),
-            "intensities": np.concatenate([b["intensities"] for b in all_blobs_coords], axis=0),
-            "T": np.concatenate([b["T"] for b in all_blobs_coords], axis=0),
+            "coords": np.concatenate([blob["coords"] for blob in all_blobs_coords], axis=0),
+            "areas": np.concatenate([blob["areas"] for blob in all_blobs_coords], axis=0),
+            "intensities": np.concatenate([blob["intensities"] for blob in all_blobs_coords], axis=0),
+            "T": np.concatenate([blob["T"] for blob in all_blobs_coords], axis=0),
         }
     else:
         return {"coords": np.array([]).reshape(0, 3), "areas": np.array([]),"intensities":np.array([]), "T": np.array([])}
@@ -591,9 +609,9 @@ def blob_detection(
             print(f"Processing single timepoint T={timepoint}...")
             dict_centers = frame_blob_detection(
                 vol_c[timepoint], algorithm, threshold, 
-                 min_sigma, max_sigma, area_max_px
+                 min_sigma, max_sigma,window_size_px, area_max_px
             )
-            dict_centers = remove_out_of_border(dict_centers, vol_bf, window_size_px//2)
+            dict_centers = remove_out_of_border(dict_centers, vol_bf[timepoint], window_size_px)
             if merging_distance:
                 dict_centers,nb_merged_centers = merging_centers(dict_centers, merging_distance,pixel_size)
             print("Creating composite")
@@ -609,12 +627,14 @@ def blob_detection(
                 threshold,
                 min_sigma,
                 max_sigma,
+                window_size_px,
                 area_max_px,
                 max_workers=max_workers,
             )
-            dict_centers = remove_out_of_border(dict_centers, vol_bf, window_size_px//2)
+            dict_centers = remove_out_of_border(dict_centers, vol_bf, window_size_px)
             if merging_distance:
                 dict_centers,nb_merged_centers = merging_centers(dict_centers, merging_distance,pixel_size)
+            print("Creating composite")
             composite = paralell_composite_creation(
                 vol_c,
                 vol_bf,
@@ -702,7 +722,7 @@ def _build_arg_parser():
                        help="Maximum Z slice")
     parser.add_argument("--annotation", type=bool, default=True,
                        help="If the idx label should be in the results images")
-    parser.add_argument("--drawn_radius", type=float, default=None,
+    parser.add_argument("--drawn_radius", type=float,
                        help="If the idx label should be in the results images")
     parser.add_argument("--max_workers", type=int,
                        help="Number of parallel workers (default: CPU count - 1)")

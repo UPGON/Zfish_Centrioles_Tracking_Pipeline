@@ -3,7 +3,6 @@ import scipy.spatial
 import scipy.optimize
 import pandas as pd
 import numpy as np
-from scipy.spatial import cKDTree
 
 def pairing_points(points1, points2, max_pairing_distance, diagonal_pairing=True):
     dist_matrix = scipy.spatial.distance_matrix(points1, points2)
