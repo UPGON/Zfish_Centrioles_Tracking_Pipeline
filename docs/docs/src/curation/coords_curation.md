@@ -34,7 +34,7 @@ Example of add.txt file
 This file contains the index of the spots to remove with the following format:
 idx 
 
-The idx corresponds to the index coordinates in the cX_centers.csv file and annotated in the cX_detection_img.tif. 
+The idx corresponds to the index coordinates in the cX_centers.csv file and annotated in the cX_detection_img.tif. This index doesn't correspond to the index found in the images from the colocalization analysis.
 Usually the easiest way to curate spot detection data is to open the cX_detection_img.tif with spot index annotation and take note of the indices of the spots to remove.
 
 Example of remove.txt file

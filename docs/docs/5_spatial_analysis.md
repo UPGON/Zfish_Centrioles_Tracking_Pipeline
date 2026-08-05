@@ -11,6 +11,7 @@ The pipeline requires running specific scripts in a specific order. Please refer
 4. [Nuclei segmentation](src/detection/stardist_segmentation.md): Segment nuclei.
 5. [Nuclei manual curation](src/curation/nuclei_curation.md) (Optional): Curate the nuclei detection/segmentation results.
 6. [Spot to nucleus pairing](src/pairing/cent_nucl_pairing.md): Pair colocalizing spots to the closest nucleus.
+7. [Spot to nucleus pairing manual curation](src/curation/cent_nuclei_pairing_curation.md) (Optional): Curate the pairing of centriolar foci to the closest nuclei
 
 ## 5.2 Schematic representation 
 <div style="text-align: center; background-color: white; padding: 12px;">

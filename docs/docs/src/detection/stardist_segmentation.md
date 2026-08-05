@@ -31,7 +31,9 @@ Optional
 ```bash
 python src/detection/stardist_segmentation.py --input_path INPUT_PATH --output_path OUTPUT_PATH --channel_id CHANNEL_ID --model_resolution DZ DY DX
 ```
-
+### Parameters suggestion
+At 1, 2dpf use the `model_resolution` 1 0.5 0.5
+At 3 dpf, use the `model_resolution` 1 0.7 0.4
 
 ### Examples
 #### Absolute script path <br>
