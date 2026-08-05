@@ -36,6 +36,9 @@ Optional
 python path/blob_detection.py --input_path INPUT_PATH --output_path OUTPUT_PATH --channel_id CHANNEL_ID --algorithm ALGORITHM --threshold THRESHOLD --min_radius MIN_RADIUS --max_radius MAX_RADIUS --merging_distance MERGING_DISTANCE --timepoint TIMEPOINT --z_min Z_MIN --z_max Z_MAX --annotation ANNOTATION --drawn_radius DRAWN_RADIUS --max_workers MAX_WORKERS
 ```
 
+### Parameters suggestion
+I would advise you to start with the same parameters as I used for data in similar condition (same day, same channel). <br>
+To further optimize the parameters, I suggest to start the detection on only few slices using `--z_max` and `--z_min` and fine tunning the parameters on these few slices. This allows quit detection for rapid parameters adjustment.
 
 ### Examples
 #### Absolute script path <br>

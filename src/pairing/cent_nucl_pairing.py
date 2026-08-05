@@ -106,7 +106,7 @@ def save_pairing_img(output_path,vol, centrioles_centers, nuclei_centers,centrio
     centrioles_centers_mask = visualization.add_texts(centrioles_centers_mask, texts = centrioles_labels, coords = centrioles_labels_coords)
 
     nuclei_centers_mask = visualization.create_circle_mask(nuclei_centers, vol[:,0])
-    nuclei_labels = np.arange(len(nuclei_centers)).astype(str).tolist()
+    nuclei_labels = nuclei_idx.astype(str).tolist()
     nuclei_labels_coords = nuclei_centers[nuclei_idx]
     nuclei_centers_mask = visualization.add_texts(nuclei_centers_mask, texts = nuclei_labels, coords = nuclei_labels_coords)
 
@@ -165,7 +165,7 @@ def save_distance_histogram(distances,output_path_plots):
     plt.close(fig)
 
    
-def save_plots(pairing_df, nuclei_centers_df,distances,max_pairing_distance, output_path):
+def save_plots(pairing_df, nuclei_centers_df,distances,output_path,max_pairing_distance = None):
     print("Saving plots")
     output_path_plots = output_path / "plots"
     os.makedirs(output_path_plots, exist_ok=True)
@@ -189,7 +189,7 @@ def save_plots(pairing_df, nuclei_centers_df,distances,max_pairing_distance, out
             show=False
         )
 
-def  save_statisitics(pairing_df,centrioles_center_df,nuclei_centers_df, distances,max_pairing_distance,output_path):
+def  save_statisitics(pairing_df,centrioles_center_df,nuclei_centers_df, distances,output_path,max_pairing_distance = None):
     pairing_df.to_csv(output_path / "pairing_results.csv", index=False)
 
     cent_per_nucl, cent_per_tot_nucl = get_centriole_per_nuclei(pairing_df, nuclei_centers_df)
@@ -199,7 +199,7 @@ def  save_statisitics(pairing_df,centrioles_center_df,nuclei_centers_df, distanc
         "pairs": len(pairing_df.index),
         "mean distance": pairing_df["distances"].mean(),
         "mean unrestricted distance": np.mean(distances),
-        "max_pairing_distance":max_pairing_distance,
+        "max_pairing_distance":max_pairing_distance if max_pairing_distance is not None else "None",
         "mean nb of centriole per paired nuclei":cent_per_nucl.mean(),
         "mean nb of centriole per total nuclei":cent_per_tot_nucl.mean(),
         "Percentage of paired centrioles": paired_centriole_percentage,
@@ -250,7 +250,7 @@ def pairing_cent_nucl(
 
 
     if output_path is None:
-            output_path = Path(f"pairing_res")
+        output_path = Path(f"pairing_res")
     os.makedirs(output_path, exist_ok=True)
 
     print("Save results")
@@ -262,8 +262,8 @@ def pairing_cent_nucl(
         centrioles_idx,
         nuclei_idx
     )
-    save_plots(pairing_cent_nucl, nuclei_centers_df,distances,max_pairing_distance,output_path)
-    save_statisitics(pairing_cent_nucl,centrioles_df,nuclei_centers_df,distances,max_pairing_distance,output_path)
+    save_plots(pairing_cent_nucl, nuclei_centers_df,distances,output_path,max_pairing_distance)
+    save_statisitics(pairing_cent_nucl,centrioles_df,nuclei_centers_df,distances,output_path,max_pairing_distance)
     print("Pairing finished")
 
 
